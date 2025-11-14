@@ -1,0 +1,9 @@
+# Patch pour désactiver kube-proxy (remplacé par Cilium)
+# À utiliser avec: talosctl machineconfig patch
+
+cluster:
+  proxy:
+    disabled: true  # Désactiver kube-proxy
+  network:
+    cni:
+      name: none  # Pas de CNI par défaut, Cilium sera installé manuellement
