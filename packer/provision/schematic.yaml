@@ -1,6 +1,6 @@
 customization:
   extraKernelArgs:
-    - "talos.platform=aws"
+    - "talos.platform=scaleway"
     - "console=tty1"
     - "console=ttyS0"
     - "net.ifnames=0"
@@ -13,4 +13,9 @@ customization:
     - "ima_template=ima-ng"
     - "ima_appraise=fix"
     - "ima_hash=sha512"
-    - "selinux=1"
+  
+  # Extensions système recommandées pour Scaleway
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/qemu-guest-agent  # Pour l'intégration avec l'hyperviseur
+      - siderolabs/util-linux-tools  # Outils système utiles

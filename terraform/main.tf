@@ -1,10 +1,10 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.9"
 
   required_providers {
-    outscale = {
-      source  = "outscale/outscale"
-      version = "~> 0.12"
+    scaleway = {
+      source  = "scaleway/scaleway"
+      version = "~> 2.62"
     }
     http = {
       source  = "hashicorp/http"
@@ -13,12 +13,15 @@ terraform {
   }
 }
 
-provider "outscale" {
-  access_key_id = var.access_key_id
-  secret_key_id = var.secret_key_id
-  region        = var.region
+provider "scaleway" {
+  access_key      = var.scw_access_key
+  secret_key      = var.scw_secret_key
+  project_id      = var.scw_project_id
+  region          = var.region
+  zone            = var.zone
 }
 
+# Récupérer l'IP publique de l'utilisateur
 data "http" "my_public_ip" {
   url = "https://ifconfig.me/ip"
 }
@@ -27,17 +30,16 @@ locals {
   my_ip_cidr = "${chomp(data.http.my_public_ip.response_body)}/32"
 
   common_tags = [
-    {
-      key   = "Cluster"
-      value = var.cluster_name
-    },
-    {
-      key   = "Environment"
-      value = var.environment
-    },
-    {
-      key   = "ManagedBy"
-      value = "Terraform"
-    }
+    "cluster=${var.cluster_name}",
+    "environment=${var.environment}",
+    "managed-by=terraform",
+    "talos-version=${var.talos_version}"
   ]
+  
+  # Liste des zones pour multi-AZ
+  availability_zones = var.enable_multi_az ? [
+    "${var.region}-1",
+    "${var.region}-2",
+    "${var.region}-3"
+  ] : ["${var.region}-1"]
 }

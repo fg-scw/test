@@ -1,420 +1,260 @@
 # ============================================================================
-# Locals pour définir les règles de sécurité de manière centralisée
+# Security Groups pour le cluster Kubernetes
 # ============================================================================
 
-locals {
-  # Règles bastion
-  bastion_rules = {
-    ssh = {
-      from_port = 22
-      to_port   = 22
-      protocol  = "tcp"
-      cidr      = coalesce(var.bastion_allowed_ssh_cidr, local.my_ip_cidr)
-    }
-  }
+# Security Group pour les Control Planes
+resource "scaleway_instance_security_group" "control_plane" {
+  name        = "${var.cluster_name}-cp-sg"
+  description = "Security group for Talos control plane nodes"
+  
+  # Politique par défaut: deny all inbound, allow all outbound
+  inbound_default_policy  = "drop"
+  outbound_default_policy = "accept"
+  stateful                = true
+  
+  tags = local.common_tags
+}
 
-  # Règles control-plane depuis IP/CIDR
-  control_plane_cidr_rules = {
-    talos_from_bastion = {
-      from_port = 50000
-      to_port   = 50000
-      protocol  = "tcp"
-      cidr      = var.vpc_bastion_cidr
-    }
+# Règles inbound pour Control Plane
+# API Kubernetes depuis Load Balancer
+resource "scaleway_instance_security_group_rules" "control_plane_k8s_api" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 6443
+    # Le LB est dans le même Private Network
+    ip_range = var.kubernetes_cidr
   }
+}
 
-  # Règles control-plane depuis security groups
-  control_plane_sg_rules = {
-    k8s_api_from_lb = {
-      from_port     = 6443
-      to_port       = 6443
-      protocol      = "tcp"
-      source_sg     = "load_balancer"
-    }
-    talos_from_lb = {
-      from_port     = 50000
-      to_port       = 50000
-      protocol      = "tcp"
-      source_sg     = "load_balancer"
-    }
-    etcd_from_cp = {
-      from_port     = 2379
-      to_port       = 2380
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    talos_from_cp = {
-      from_port     = 50000
-      to_port       = 50000
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    k8s_api_from_cp = {
-      from_port     = 6443
-      to_port       = 6443
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    kubelet_from_cp = {
-      from_port     = 10250
-      to_port       = 10250
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    cilium_health_from_cp = {
-      from_port     = 4240
-      to_port       = 4240
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    cilium_hubble_from_cp = {
-      from_port     = 4244
-      to_port       = 4245
-      protocol      = "tcp"
-      source_sg     = "control_plane"
-    }
-    k8s_api_from_workers = {
-      from_port     = 6443
-      to_port       = 6443
-      protocol      = "tcp"
-      source_sg     = "workers"
-    }
-    kubelet_from_workers = {
-      from_port     = 10250
-      to_port       = 10250
-      protocol      = "tcp"
-      source_sg     = "workers"
-    }
-    cilium_health_from_workers = {
-      from_port     = 4240
-      to_port       = 4240
-      protocol      = "tcp"
-      source_sg     = "workers"
-    }
-    cilium_hubble_from_workers = {
-      from_port     = 4244
-      to_port       = 4245
-      protocol      = "tcp"
-      source_sg     = "workers"
-    }
+# API Talos depuis Load Balancer et bastion
+resource "scaleway_instance_security_group_rules" "control_plane_talos_api" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 50000
+    ip_range = var.kubernetes_cidr
   }
+}
 
-  # Règles workers depuis IP/CIDR
-  workers_cidr_rules = {
-    talos_from_bastion = {
-      from_port = 50000
-      to_port   = 50000
-      protocol  = "tcp"
-      cidr      = var.vpc_bastion_cidr
-    }
-    nodeport_from_bastion = {
-      from_port = 30000
-      to_port   = 32767
-      protocol  = "tcp"
-      cidr      = var.vpc_bastion_cidr
-    }
+# etcd inter-control-planes
+resource "scaleway_instance_security_group_rules" "control_plane_etcd" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  # etcd client
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 2379
+    ip_range = var.kubernetes_cidr
   }
-
-  # Règles workers depuis security groups
-  workers_sg_rules = {
-    kubelet_from_cp = {
-      from_port = 10250
-      to_port   = 10250
-      protocol  = "tcp"
-      source_sg = "control_plane"
-    }
-    cilium_health_from_cp = {
-      from_port = 4240
-      to_port   = 4240
-      protocol  = "tcp"
-      source_sg = "control_plane"
-    }
-    cilium_hubble_from_cp = {
-      from_port = 4244
-      to_port   = 4245
-      protocol  = "tcp"
-      source_sg = "control_plane"
-    }
-    vxlan_from_cp = {
-      from_port = 8472
-      to_port   = 8472
-      protocol  = "udp"
-      source_sg = "control_plane"
-    }
-    kubelet_internal = {
-      from_port = 10250
-      to_port   = 10250
-      protocol  = "tcp"
-      source_sg = "workers"
-    }
-    cilium_health_internal = {
-      from_port = 4240
-      to_port   = 4240
-      protocol  = "tcp"
-      source_sg = "workers"
-    }
-    cilium_hubble_internal = {
-      from_port = 4244
-      to_port   = 4245
-      protocol  = "tcp"
-      source_sg = "workers"
-    }
-    vxlan_internal = {
-      from_port = 8472
-      to_port   = 8472
-      protocol  = "udp"
-      source_sg = "workers"
-    }
+  
+  # etcd peer
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 2380
+    ip_range = var.kubernetes_cidr
   }
+}
 
-  # Règles load balancer depuis IP/CIDR
-  lb_cidr_rules = {
-    k8s_api_from_bastion = {
-      from_port = 6443
-      to_port   = 6443
-      protocol  = "tcp"
-      cidr      = var.vpc_bastion_cidr
-    }
-    talos_from_bastion = {
-      from_port = 50000
-      to_port   = 50000
-      protocol  = "tcp"
-      cidr      = var.vpc_bastion_cidr
-    }
+# Kubelet API
+resource "scaleway_instance_security_group_rules" "control_plane_kubelet" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 10250
+    ip_range = var.kubernetes_cidr
   }
+}
 
-  # Règles load balancer depuis security groups
-  lb_sg_rules = {
-    k8s_api_from_workers = {
-      from_port = 6443
-      to_port   = 6443
-      protocol  = "tcp"
-      source_sg = "workers"
-    }
-    k8s_api_from_cp = {
-      from_port = 6443
-      to_port   = 6443
-      protocol  = "tcp"
-      source_sg = "control_plane"
-    }
+# Cilium health checks et Hubble
+resource "scaleway_instance_security_group_rules" "control_plane_cilium" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  # Cilium health
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 4240
+    ip_range = var.kubernetes_cidr
   }
+  
+  # Hubble server
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port_range = "4244-4245"
+    ip_range = var.kubernetes_cidr
+  }
+  
+  # VXLAN (si overlay network)
+  inbound_rule {
+    action   = "accept"
+    protocol = "UDP"
+    port     = 8472
+    ip_range = var.kubernetes_cidr
+  }
+}
 
-  # Mapping des noms de SG vers les ressources
-  sg_map = {
-    control_plane = outscale_security_group.control_plane.security_group_name
-    workers       = outscale_security_group.workers.security_group_name
-    load_balancer = outscale_security_group.load_balancer.security_group_name
+# ICMP pour ping
+resource "scaleway_instance_security_group_rules" "control_plane_icmp" {
+  security_group_id = scaleway_instance_security_group.control_plane.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "ICMP"
+    ip_range = var.kubernetes_cidr
   }
 }
 
 # ============================================================================
-# Security Groups
+# Security Group pour les Workers
 # ============================================================================
 
-# Security Group Bastion
-resource "outscale_security_group" "bastion" {
-  description         = "${var.cluster_name} Bastion Security Group"
-  security_group_name = "${var.cluster_name}-bastion-sg"
-  net_id              = outscale_net.bastion.net_id
+resource "scaleway_instance_security_group" "workers" {
+  name        = "${var.cluster_name}-workers-sg"
+  description = "Security group for Talos worker nodes"
+  
+  inbound_default_policy  = "drop"
+  outbound_default_policy = "accept"
+  stateful                = true
+  
+  tags = local.common_tags
+}
 
-  tags {
-    key   = "Name"
-    value = "${var.cluster_name}-bastion-sg"
-  }
-
-  tags {
-    key   = "Cluster"
-    value = var.cluster_name
-  }
-
-  tags {
-    key   = "Environment"
-    value = var.environment
-  }
-
-  tags {
-    key   = "Role"
-    value = "Bastion"
+# Règles inbound pour Workers
+# Kubelet API
+resource "scaleway_instance_security_group_rules" "workers_kubelet" {
+  security_group_id = scaleway_instance_security_group.workers.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 10250
+    ip_range = var.kubernetes_cidr
   }
 }
 
-# Règles Bastion
-resource "outscale_security_group_rule" "bastion" {
-  for_each = local.bastion_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.bastion.security_group_id
-  from_port_range   = each.value.from_port
-  to_port_range     = each.value.to_port
-  ip_protocol       = each.value.protocol
-  ip_range          = each.value.cidr
-}
-
-
-# Security Group Control Plane
-resource "outscale_security_group" "control_plane" {
-  description         = "${var.cluster_name} Control Plane Security Group"
-  security_group_name = "${var.cluster_name}-cp-sg"
-  net_id              = outscale_net.kubernetes.net_id
-
-  tags {
-    key   = "Name"
-    value = "${var.cluster_name}-cp-sg"
-  }
-
-  tags {
-    key   = "Cluster"
-    value = var.cluster_name
-  }
-
-  tags {
-    key   = "Environment"
-    value = var.environment
-  }
-
-  tags {
-    key   = "Role"
-    value = "ControlPlane"
+# NodePort Services (30000-32767)
+resource "scaleway_instance_security_group_rules" "workers_nodeport" {
+  security_group_id = scaleway_instance_security_group.workers.id
+  
+  inbound_rule {
+    action     = "accept"
+    protocol   = "TCP"
+    port_range = "30000-32767"
+    ip_range   = var.kubernetes_cidr
   }
 }
 
-# Règles Control Plane depuis CIDR
-resource "outscale_security_group_rule" "control_plane_cidr" {
-  for_each = local.control_plane_cidr_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.control_plane.security_group_id
-  from_port_range   = each.value.from_port
-  to_port_range     = each.value.to_port
-  ip_protocol       = each.value.protocol
-  ip_range          = each.value.cidr
-}
-
-# Règles Control Plane depuis Security Groups
-resource "outscale_security_group_rule" "control_plane_sg" {
-  for_each = local.control_plane_sg_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.control_plane.security_group_id
-
-  rules {
-    from_port_range = each.value.from_port
-    to_port_range   = each.value.to_port
-    ip_protocol     = each.value.protocol
-    security_groups_members {
-      security_group_name = local.sg_map[each.value.source_sg]
-    }
+# Cilium health et Hubble
+resource "scaleway_instance_security_group_rules" "workers_cilium" {
+  security_group_id = scaleway_instance_security_group.workers.id
+  
+  # Cilium health
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 4240
+    ip_range = var.kubernetes_cidr
+  }
+  
+  # Hubble
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port_range = "4244-4245"
+    ip_range = var.kubernetes_cidr
+  }
+  
+  # VXLAN
+  inbound_rule {
+    action   = "accept"
+    protocol = "UDP"
+    port     = 8472
+    ip_range = var.kubernetes_cidr
   }
 }
 
-# Security Group Workers
-resource "outscale_security_group" "workers" {
-  description         = "${var.cluster_name} Worker Nodes Security Group"
-  security_group_name = "${var.cluster_name}-worker-sg"
-  net_id              = outscale_net.kubernetes.net_id
-
-  tags {
-    key   = "Name"
-    value = "${var.cluster_name}-worker-sg"
-  }
-
-  tags {
-    key   = "Cluster"
-    value = var.cluster_name
-  }
-
-  tags {
-    key   = "Environment"
-    value = var.environment
-  }
-
-  tags {
-    key   = "Role"
-    value = "Worker"
+# API Talos pour gestion
+resource "scaleway_instance_security_group_rules" "workers_talos_api" {
+  security_group_id = scaleway_instance_security_group.workers.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 50000
+    ip_range = var.kubernetes_cidr
   }
 }
 
-# Règles Workers depuis CIDR
-resource "outscale_security_group_rule" "workers_cidr" {
-  for_each = local.workers_cidr_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.workers.security_group_id
-  from_port_range   = each.value.from_port
-  to_port_range     = each.value.to_port
-  ip_protocol       = each.value.protocol
-  ip_range          = each.value.cidr
-}
-
-# Règles Workers depuis Security Groups
-resource "outscale_security_group_rule" "workers_sg" {
-  for_each = local.workers_sg_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.workers.security_group_id
-
-  rules {
-    from_port_range = each.value.from_port
-    to_port_range   = each.value.to_port
-    ip_protocol     = each.value.protocol
-    security_groups_members {
-      security_group_name = local.sg_map[each.value.source_sg]
-    }
+# ICMP
+resource "scaleway_instance_security_group_rules" "workers_icmp" {
+  security_group_id = scaleway_instance_security_group.workers.id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "ICMP"
+    ip_range = var.kubernetes_cidr
   }
 }
 
-# Security Group Load Balancer
-resource "outscale_security_group" "load_balancer" {
-  description         = "${var.cluster_name} Load Balancer Security Group"
-  security_group_name = "${var.cluster_name}-lb-sg"
-  net_id              = outscale_net.kubernetes.net_id
+# ============================================================================
+# Security Group pour le Bastion (optionnel)
+# ============================================================================
 
-  tags {
-    key   = "Name"
-    value = "${var.cluster_name}-lb-sg"
-  }
+resource "scaleway_instance_security_group" "bastion" {
+  count = var.enable_bastion_instance ? 1 : 0
 
-  tags {
-    key   = "Cluster"
-    value = var.cluster_name
-  }
+  name        = "${var.cluster_name}-bastion-sg"
+  description = "Security group for bastion host"
+  
+  inbound_default_policy  = "drop"
+  outbound_default_policy = "accept"
+  stateful                = true
+  
+  tags = local.common_tags
+}
 
-  tags {
-    key   = "Environment"
-    value = var.environment
-  }
+# SSH depuis IP autorisée
+resource "scaleway_instance_security_group_rules" "bastion_ssh" {
+  count = var.enable_bastion_instance ? 1 : 0
 
-  tags {
-    key   = "Role"
-    value = "LoadBalancer"
+  security_group_id = scaleway_instance_security_group.bastion[0].id
+  
+  inbound_rule {
+    action   = "accept"
+    protocol = "TCP"
+    port     = 22
+    ip_range = coalesce(var.bastion_allowed_cidr, local.my_ip_cidr)
   }
 }
 
-# Règles Load Balancer depuis CIDR
-resource "outscale_security_group_rule" "lb_cidr" {
-  for_each = local.lb_cidr_rules
+# ============================================================================
+# Notes sur les Security Groups Scaleway
+# ============================================================================
 
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.load_balancer.security_group_id
-  from_port_range   = each.value.from_port
-  to_port_range     = each.value.to_port
-  ip_protocol       = each.value.protocol
-  ip_range          = each.value.cidr
-}
-
-# Règles Load Balancer depuis Security Groups
-resource "outscale_security_group_rule" "lb_sg" {
-  for_each = local.lb_sg_rules
-
-  flow              = "Inbound"
-  security_group_id = outscale_security_group.load_balancer.security_group_id
-
-  rules {
-    from_port_range = each.value.from_port
-    to_port_range   = each.value.to_port
-    ip_protocol     = each.value.protocol
-    security_groups_members {
-      security_group_name = local.sg_map[each.value.source_sg]
-    }
-  }
-}
+# 1. Les Security Groups sont STATEFUL par défaut
+#    - Le retour du trafic est automatiquement autorisé
+#
+# 2. Politique par défaut recommandée:
+#    - inbound: drop (deny all)
+#    - outbound: accept (allow all)
+#
+# 3. Les règles s'appliquent uniquement au trafic PUBLIC
+#    - Le trafic entre instances du même Private Network passe
+#      par le réseau privé et n'est pas filtré par les SG
+#
+# 4. Pour filtrer le trafic PRIVÉ entre Private Networks:
+#    - Utiliser les NACLs (Network ACLs) du VPC
+#    - Actuellement en beta publique
+#
+# 5. SMTP ports (25, 465, 587) sont bloqués par défaut par Scaleway
+#    - Nécessite une demande explicite pour les débloquer

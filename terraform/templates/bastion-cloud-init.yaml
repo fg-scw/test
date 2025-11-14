@@ -1,0 +1,71 @@
+#cloud-config
+
+# Cloud-init pour instance bastion Scaleway
+# Installe les outils nécessaires pour gérer le cluster Talos
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - jq
+  - git
+  - unzip
+  - bash-completion
+
+write_files:
+  - path: /etc/motd
+    content: |
+      ═══════════════════════════════════════════════════════════
+          Bastion ${cluster_name} - Scaleway
+      ═══════════════════════════════════════════════════════════
+      
+      Outils installés:
+        • talosctl ${talos_version} - Talos Linux CLI
+        • kubectl - Kubernetes CLI
+        • helm - Kubernetes Package Manager
+        • scw - Scaleway CLI
+      
+      Pour démarrer:
+        1. Copiez votre talosconfig: scp _out/talosconfig bastion:~/
+        2. Copiez votre kubeconfig: scp _out/kubeconfig bastion:~/
+        3. Exportez: export KUBECONFIG=~/kubeconfig
+        4. Testez: kubectl get nodes
+      
+      Documentation: https://www.talos.dev/
+      ═══════════════════════════════════════════════════════════
+
+runcmd:
+  # Installer talosctl
+  - curl -sL https://talos.dev/install | sh
+  
+  # Installer kubectl
+  - |
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
+  
+  # Installer Helm
+  - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  
+  # Installer Scaleway CLI
+  - |
+    curl -o /usr/local/bin/scw -L "https://github.com/scaleway/scaleway-cli/releases/latest/download/scaleway-cli_linux_amd64"
+    chmod +x /usr/local/bin/scw
+  
+  # Configurer bash-completion
+  - kubectl completion bash > /etc/bash_completion.d/kubectl
+  - talosctl completion bash > /etc/bash_completion.d/talosctl
+  - helm completion bash > /etc/bash_completion.d/helm
+  - scw completion bash > /etc/bash_completion.d/scw
+  
+  # Créer répertoire de travail
+  - mkdir -p /home/ubuntu/talos-cluster
+  - chown -R ubuntu:ubuntu /home/ubuntu/talos-cluster
+
+final_message: |
+  ═══════════════════════════════════════════════════════════
+  Bastion ${cluster_name} prêt !
+  Temps d'initialisation: $UPTIME secondes
+  ═══════════════════════════════════════════════════════════

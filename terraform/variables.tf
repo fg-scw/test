@@ -1,26 +1,54 @@
-# Variables générales
-variable "access_key_id" {
-  description = "Outscale Access Key ID"
+# ============================================================================
+# Credentials et Projet Scaleway
+# ============================================================================
+
+variable "scw_access_key" {
+  description = "Scaleway Access Key"
   type        = string
   sensitive   = true
 }
 
-variable "secret_key_id" {
-  description = "Outscale Secret Key ID"
+variable "scw_secret_key" {
+  description = "Scaleway Secret Key"
   type        = string
   sensitive   = true
+}
+
+variable "scw_project_id" {
+  description = "Scaleway Project ID"
+  type        = string
 }
 
 variable "region" {
-  description = "Région Outscale"
+  description = "Région Scaleway"
   type        = string
-  default     = "eu-west-2"
+  default     = "fr-par"
+  
+  validation {
+    condition     = contains(["fr-par", "nl-ams", "pl-waw"], var.region)
+    error_message = "La région doit être fr-par, nl-ams ou pl-waw."
+  }
 }
+
+variable "zone" {
+  description = "Zone par défaut Scaleway"
+  type        = string
+  default     = "fr-par-1"
+}
+
+# ============================================================================
+# Configuration du Cluster
+# ============================================================================
 
 variable "cluster_name" {
   description = "Nom du cluster Kubernetes"
   type        = string
   default     = "talos-prod"
+  
+  validation {
+    condition     = can(regex("^[a-z0-9-]+$", var.cluster_name))
+    error_message = "Le nom du cluster doit contenir uniquement des minuscules, chiffres et tirets."
+  }
 }
 
 variable "environment" {
@@ -29,202 +57,219 @@ variable "environment" {
   default     = "production"
 }
 
-# Network Configuration
-variable "vpc_k8s_cidr" {
-  description = "CIDR pour le VPC Kubernetes"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "vpc_bastion_cidr" {
-  description = "CIDR pour le VPC Bastion"
-  type        = string
-  default     = "10.100.0.0/16"
-}
-
-variable "subnet_k8s_az_a_cidr" {
-  description = "CIDR pour le subnet Kubernetes AZ-A"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "subnet_k8s_az_b_cidr" {
-  description = "CIDR pour le subnet Kubernetes AZ-B"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "subnet_k8s_az_c_cidr" {
-  description = "CIDR pour le subnet Kubernetes AZ-C"
-  type        = string
-  default     = "10.0.3.0/24"
-}
-
-variable "subnet_k8s_nat_cidr" {
-  description = "CIDR pour le subnet NAT Gateway"
-  type        = string
-  default     = "10.0.254.0/24"
-}
-
-variable "subnet_bastion_cidr" {
-  description = "CIDR pour le subnet Bastion"
-  type        = string
-  default     = "10.100.1.0/24"
-}
-
-# Talos Configuration
 variable "talos_version" {
-  description = "Version de Talos"
+  description = "Version de Talos Linux"
   type        = string
-  default     = "v1.10.6"
+  default     = "v1.11.5"
 }
 
-variable "talos_image_id" {
-  description = "ID de l'OMI Talos (laisser vide pour auto-détection)"
+# ============================================================================
+# Configuration Réseau
+# ============================================================================
+
+variable "kubernetes_cidr" {
+  description = "CIDR pour le Private Network Kubernetes (IPAM automatique si non spécifié)"
   type        = string
-  default     = ""
-}
-
-# Control Plane Configuration
-variable "control_plane_count" {
-  description = "Nombre de control plane nodes"
-  type        = number
-  default     = 3
-
+  default     = "10.0.0.0/22"  # 1020 IPs utilisables
+  
   validation {
-    condition     = var.control_plane_count >= 1 && var.control_plane_count <= 5
-    error_message = "Le nombre de control planes doit être entre 1 et 5."
+    condition     = can(cidrhost(var.kubernetes_cidr, 0))
+    error_message = "Le CIDR doit être valide (ex: 10.0.0.0/22)."
   }
 }
 
-variable "control_plane_vm_type" {
-  description = "Type de VM pour control planes"
+variable "bastion_cidr" {
+  description = "CIDR pour le Private Network du bastion"
   type        = string
-  default     = "tinav5.c4r8p1" # 4 vCPU, 8GB RAM
+  default     = "10.100.0.0/24"
+}
+
+variable "enable_multi_az" {
+  description = "Activer le déploiement multi-AZ (PAR-1, PAR-2, PAR-3)"
+  type        = bool
+  default     = true
+}
+
+# ============================================================================
+# Configuration Control Plane
+# ============================================================================
+
+variable "control_plane_count" {
+  description = "Nombre de nœuds control plane (recommandé: 3 pour HA)"
+  type        = number
+  default     = 3
+  
+  validation {
+    condition     = var.control_plane_count >= 1 && var.control_plane_count <= 5 && var.control_plane_count % 2 == 1
+    error_message = "Le nombre de control planes doit être impair (1, 3 ou 5) pour le quorum etcd."
+  }
+}
+
+variable "control_plane_instance_type" {
+  description = "Type d'instance pour les control planes"
+  type        = string
+  default     = "PRO2-S"  # 2 vCPU, 8 GB RAM
+  
+  validation {
+    condition     = can(regex("^(DEV1-[SML]|GP1-[XSLM]|PRO2-[XSLM]|POP2-.*C-.*)$", var.control_plane_instance_type))
+    error_message = "Type d'instance invalide. Exemples: DEV1-M, PRO2-S, POP2-4C-16G."
+  }
 }
 
 variable "control_plane_disk_size" {
-  description = "Taille du disque pour control planes (GB)"
+  description = "Taille du disque pour les control planes (GB)"
   type        = number
   default     = 50
-}
-
-# Worker Configuration
-variable "worker_count" {
-  description = "Nombre de worker nodes"
-  type        = number
-  default     = 3
-
+  
   validation {
-    condition     = var.worker_count >= 0 && var.worker_count <= 20
-    error_message = "Le nombre de workers doit être entre 0 et 20."
+    condition     = var.control_plane_disk_size >= 20 && var.control_plane_disk_size <= 10000
+    error_message = "La taille du disque doit être entre 20 GB et 10 TB."
   }
 }
 
-variable "worker_vm_type" {
-  description = "Type de VM pour workers"
+# ============================================================================
+# Configuration Workers
+# ============================================================================
+
+variable "worker_count" {
+  description = "Nombre de nœuds workers"
+  type        = number
+  default     = 3
+  
+  validation {
+    condition     = var.worker_count >= 0 && var.worker_count <= 50
+    error_message = "Le nombre de workers doit être entre 0 et 50."
+  }
+}
+
+variable "worker_instance_type" {
+  description = "Type d'instance pour les workers"
   type        = string
-  default     = "tinav5.c4r16p1" # 4 vCPU, 16GB RAM
+  default     = "PRO2-M"  # 4 vCPU, 16 GB RAM
 }
 
 variable "worker_disk_size" {
-  description = "Taille du disque pour workers (GB)"
+  description = "Taille du disque pour les workers (GB)"
   type        = number
   default     = 100
 }
 
-# Bastion Configuration
-variable "bastion_vm_type" {
-  description = "Type de VM pour le bastion"
-  type        = string
-  default     = "tinav5.c1r2p1" # 1 vCPU, 2GB RAM
-}
+# ============================================================================
+# Configuration Load Balancer
+# ============================================================================
 
-variable "bastion_image_id" {
-  description = "ID de l'OMI pour le bastion (Ubuntu 22.04 recommandé)"
+variable "load_balancer_type" {
+  description = "Type de Load Balancer Scaleway"
   type        = string
-  default     = "" # Sera auto-détecté
-}
-
-variable "bastion_allowed_ssh_cidr" {
-  description = "CIDR autorisé pour SSH vers le bastion (par défaut votre IP)"
-  type        = string
-  default     = "" # Sera auto-détecté
-}
-
-variable "ssh_public_key_path" {
-  description = "Chemin vers la clé publique SSH pour l'accès aux VMs"
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
-}
-
-# Load Balancer Configuration
-variable "lb_type" {
-  description = "Type de Load Balancer (internet-facing ou internal)"
-  type        = string
-  default     = "internal"
-
+  default     = "LB-S"  # Petit LB, suffisant pour API K8s
+  
   validation {
-    condition     = contains(["internet-facing", "internal"], var.lb_type)
-    error_message = "Le type de LB doit être 'internet-facing' ou 'internal'."
+    condition     = contains(["LB-S", "LB-GP-M", "LB-GP-L"], var.load_balancer_type)
+    error_message = "Le type de LB doit être LB-S, LB-GP-M ou LB-GP-L."
   }
 }
 
-# Security
-variable "enable_talos_api_from_internet" {
-  description = "Autoriser l'accès à l'API Talos depuis internet (via bastion uniquement recommandé)"
+variable "expose_k8s_api_publicly" {
+  description = "Exposer l'API Kubernetes publiquement (déconseillé en production)"
   type        = bool
   default     = false
 }
 
-variable "enable_k8s_api_from_internet" {
-  description = "Autoriser l'accès à l'API Kubernetes depuis internet (via bastion uniquement recommandé)"
-  type        = bool
-  default     = false
-}
-
-# High Availability
-variable "enable_multi_az" {
-  description = "Déployer sur plusieurs AZs (recommandé pour la production)"
+variable "expose_talos_api" {
+  description = "Exposer l'API Talos via le Load Balancer"
   type        = bool
   default     = true
 }
 
-variable "availability_zones" {
-  description = "Zones de disponibilité à utiliser"
-  type        = list(string)
-  default     = ["a", "b", "c"]
-}
-
-# Monitoring & Logging
-variable "enable_monitoring" {
-  description = "Activer le monitoring avancé"
+variable "enable_lb_acls" {
+  description = "Activer les ACLs sur le Load Balancer"
   type        = bool
   default     = true
 }
 
-variable "enable_detailed_monitoring" {
-  description = "Activer le monitoring détaillé (coût supplémentaire)"
-  type        = bool
-  default     = false
+# ============================================================================
+# Configuration Public Gateway
+# ============================================================================
+
+variable "public_gateway_type" {
+  description = "Type de Public Gateway"
+  type        = string
+  default     = "VPC-GW-S"  # 1 Gbps
+  
+  validation {
+    condition     = contains(["VPC-GW-S", "VPC-GW-M", "VPC-GW-L"], var.public_gateway_type)
+    error_message = "Le type de gateway doit être VPC-GW-S, VPC-GW-M ou VPC-GW-L."
+  }
 }
 
-# Backup
-variable "enable_snapshots" {
-  description = "Créer des snapshots automatiques"
+variable "enable_bastion_on_gateway" {
+  description = "Activer le bastion SSH sur la Public Gateway"
   type        = bool
   default     = true
 }
 
-variable "snapshot_retention_days" {
-  description = "Nombre de jours de rétention des snapshots"
+variable "bastion_ssh_port" {
+  description = "Port SSH pour le bastion sur la Public Gateway"
   type        = number
-  default     = 7
+  default     = 61000
 }
 
-# Tags additionnels
-variable "additional_tags" {
-  description = "Tags additionnels à ajouter à toutes les ressources"
-  type        = map(string)
-  default     = {}
+# ============================================================================
+# Configuration Bastion (instance dédiée optionnelle)
+# ============================================================================
+
+variable "enable_bastion_instance" {
+  description = "Créer une instance bastion dédiée (en plus du bastion sur gateway)"
+  type        = bool
+  default     = false
 }
+
+variable "bastion_instance_type" {
+  description = "Type d'instance pour le bastion"
+  type        = string
+  default     = "DEV1-S"
+}
+
+variable "bastion_allowed_cidr" {
+  description = "CIDR autorisé pour SSH (laisser vide pour auto-détecter votre IP)"
+  type        = string
+  default     = ""
+}
+
+# ============================================================================
+# Tags additionnels
+# ============================================================================
+
+variable "additional_tags" {
+  description = "Tags additionnels à appliquer à toutes les ressources"
+  type        = list(string)
+  default     = []
+}
+
+# ============================================================================
+# Notes sur les types d'instances Scaleway
+# ============================================================================
+
+# Types d'instances recommandés pour Kubernetes:
+#
+# Development/Test:
+#   - DEV1-S: 2 vCPU, 2 GB RAM (€0.01/h)
+#   - DEV1-M: 3 vCPU, 4 GB RAM (€0.02/h)
+#   - DEV1-L: 4 vCPU, 8 GB RAM (€0.04/h)
+#
+# Production (vCPU partagé):
+#   - PRO2-XXS: 0.5 vCPU, 2 GB RAM
+#   - PRO2-XS:  1 vCPU, 4 GB RAM
+#   - PRO2-S:   2 vCPU, 8 GB RAM (recommandé control plane)
+#   - PRO2-M:   4 vCPU, 16 GB RAM (recommandé workers)
+#   - PRO2-L:   8 vCPU, 32 GB RAM
+#
+# Production (vCPU dédié):
+#   - POP2-2C-8G:   2 vCPU, 8 GB RAM
+#   - POP2-4C-16G:  4 vCPU, 16 GB RAM
+#   - POP2-8C-32G:  8 vCPU, 32 GB RAM
+#   - POP2-16C-64G: 16 vCPU, 64 GB RAM
+#
+# ARM (PAR-2 uniquement):
+#   - COPARM1-2C-8G: 2 vCPU ARM, 8 GB RAM
+#   - COPARM1-4C-16G: 4 vCPU ARM, 16 GB RAM
