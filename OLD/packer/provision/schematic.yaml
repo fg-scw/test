@@ -1,0 +1,21 @@
+customization:
+  extraKernelArgs:
+    - "talos.platform=scaleway"
+    - "console=tty1"
+    - "console=ttyS0"
+    - "net.ifnames=0"
+    - "init_on_alloc=1"
+    - "slab_nomerge"
+    - "pti=on"
+    - "consoleblank=0"
+    - "nvme_core.io_timeout=4294967295"
+    - "printk.devkmsg=on"
+    - "ima_template=ima-ng"
+    - "ima_appraise=fix"
+    - "ima_hash=sha512"
+  
+  # Extensions système recommandées pour Scaleway
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/qemu-guest-agent  # Pour l'intégration avec l'hyperviseur
+      - siderolabs/util-linux-tools  # Outils système utiles
