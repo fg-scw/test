@@ -1,0 +1,232 @@
+#cloud-config
+
+# Bootstrap automatique du cluster Talos depuis le bastion
+# Ce script s'exécute automatiquement au démarrage de l'instance
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - jq
+  - git
+  - vim
+
+write_files:
+  # Fichier de patch Cilium (base64 décodé)
+  - path: /root/cilium-patch.yaml
+    encoding: b64
+    content: ${cilium_patch}
+    permissions: '0644'
+
+  # Script de bootstrap principal
+  - path: /root/bootstrap-talos.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      
+      CLUSTER_NAME="${cluster_name}"
+      K8S_ENDPOINT="https://${k8s_api_endpoint}:6443"
+      CONTROL_PLANE_IPS=(${control_plane_ips})
+      WORKER_IPS=(${worker_ips})
+      
+      log() {
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a /var/log/talos-bootstrap.log
+      }
+      
+      log "=========================================="
+      log "Starting Talos Cluster Bootstrap"
+      log "=========================================="
+      log "Cluster: $CLUSTER_NAME"
+      log "Endpoint: $K8S_ENDPOINT"
+      log "Control Planes: $${CONTROL_PLANE_IPS[@]}"
+      log "Workers: $${WORKER_IPS[@]}"
+      
+      # Attendre que les nœuds soient accessibles
+      log "Waiting for nodes to be reachable..."
+      for ip in "$${CONTROL_PLANE_IPS[@]}" "$${WORKER_IPS[@]}"; do
+        log "  Checking $ip:50000..."
+        timeout=300
+        elapsed=0
+        while ! nc -z -w5 "$ip" 50000; do
+          if [ $elapsed -ge $timeout ]; then
+            log "ERROR: Timeout waiting for $ip:50000"
+            exit 1
+          fi
+          sleep 5
+          elapsed=$((elapsed + 5))
+        done
+        log "  ✓ $ip:50000 is reachable"
+      done
+      
+      log "All nodes are reachable!"
+      
+      # Générer les configurations Talos
+      log "Generating Talos configurations..."
+      cd /root
+      talosctl gen config "$CLUSTER_NAME" "$K8S_ENDPOINT" \
+        --output-dir /root/talos-config \
+        --with-docs=false \
+        --with-examples=false
+      
+      log "✓ Talos configurations generated"
+      
+      # Appliquer le patch Cilium
+      log "Applying Cilium patch..."
+      talosctl machineconfig patch \
+        /root/talos-config/controlplane.yaml \
+        --patch @/root/cilium-patch.yaml \
+        -o /root/talos-config/controlplane-patched.yaml
+      
+      log "✓ Cilium patch applied"
+      
+      # Configurer les control planes
+      log "Configuring control plane nodes..."
+      for ip in "$${CONTROL_PLANE_IPS[@]}"; do
+        log "  Configuring control plane: $ip"
+        talosctl apply-config \
+          --insecure \
+          --nodes "$ip" \
+          --file /root/talos-config/controlplane-patched.yaml
+        log "  ✓ Control plane $ip configured"
+      done
+      
+      # Configurer les workers
+      log "Configuring worker nodes..."
+      for ip in "$${WORKER_IPS[@]}"; do
+        log "  Configuring worker: $ip"
+        talosctl apply-config \
+          --insecure \
+          --nodes "$ip" \
+          --file /root/talos-config/worker.yaml
+        log "  ✓ Worker $ip configured"
+      done
+      
+      # Attendre que les nœuds appliquent la configuration
+      log "Waiting 120 seconds for nodes to apply configuration..."
+      sleep 120
+      
+      # Bootstrap etcd
+      log "Bootstrapping etcd on first control plane..."
+      talosctl --talosconfig /root/talos-config/talosconfig \
+        bootstrap \
+        --nodes "$${CONTROL_PLANE_IPS[0]}"
+      
+      log "✓ etcd bootstrapped"
+      
+      # Attendre que le cluster soit prêt
+      log "Waiting 90 seconds for cluster to initialize..."
+      sleep 90
+      
+      # Récupérer le kubeconfig
+      log "Fetching kubeconfig..."
+      talosctl --talosconfig /root/talos-config/talosconfig \
+        kubeconfig /root/talos-config/kubeconfig \
+        --nodes "$${CONTROL_PLANE_IPS[0]}"
+      
+      log "✓ Kubeconfig fetched"
+      
+      # Vérifier les nœuds
+      log "Checking cluster nodes..."
+      export KUBECONFIG=/root/talos-config/kubeconfig
+      kubectl get nodes -o wide
+      
+      # Installer Cilium
+      log "Installing Cilium CNI..."
+      helm repo add cilium https://helm.cilium.io/ 2>/dev/null || true
+      helm repo update
+      
+      helm install cilium cilium/cilium \
+        --namespace kube-system \
+        --set ipam.mode=kubernetes \
+        --set kubeProxyReplacement=true \
+        --set k8sServiceHost=${k8s_api_endpoint} \
+        --set k8sServicePort=6443
+      
+      log "✓ Cilium installed"
+      
+      # Attendre que Cilium démarre
+      log "Waiting for Cilium to be ready..."
+      kubectl -n kube-system wait --for=condition=ready pod -l k8s-app=cilium --timeout=300s || true
+      
+      # Afficher le statut final
+      log "=========================================="
+      log "Bootstrap Complete!"
+      log "=========================================="
+      log ""
+      log "Cluster Status:"
+      kubectl get nodes
+      log ""
+      log "System Pods:"
+      kubectl -n kube-system get pods
+      log ""
+      log "Files available at /root/talos-config:"
+      log "  - talosconfig (Talos admin config)"
+      log "  - kubeconfig (Kubernetes admin config)"
+      log "  - controlplane-patched.yaml"
+      log "  - worker.yaml"
+      log ""
+      log "To download configs to your local machine:"
+      log "  scp root@$(curl -s ifconfig.me):/root/talos-config/kubeconfig ~/.kube/talos-k8s-config"
+      log "  scp root@$(curl -s ifconfig.me):/root/talos-config/talosconfig ~/.talos/talos-k8s-config"
+      log ""
+      log "=========================================="
+
+  # Systemd service pour exécuter le bootstrap au démarrage
+  - path: /etc/systemd/system/talos-bootstrap.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Talos Cluster Bootstrap
+      After=network-online.target
+      Wants=network-online.target
+      
+      [Service]
+      Type=oneshot
+      User=root
+      ExecStart=/root/bootstrap-talos.sh
+      StandardOutput=journal+console
+      StandardError=journal+console
+      
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Installer talosctl
+  - |
+    echo "Installing talosctl..."
+    curl -sL https://talos.dev/install | sh
+    talosctl version --client
+  
+  # Installer kubectl
+  - |
+    echo "Installing kubectl..."
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
+    kubectl version --client
+  
+  # Installer Helm
+  - |
+    echo "Installing Helm..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    helm version
+  
+  # Installer netcat pour les checks de port
+  - apt-get install -y netcat
+  
+  # Activer et démarrer le service de bootstrap
+  - systemctl daemon-reload
+  - systemctl enable talos-bootstrap.service
+  - systemctl start talos-bootstrap.service
+
+final_message: |
+  ========================================
+  Bootstrap Bastion Ready!
+  ========================================
+  Talos cluster bootstrap is running in background.
+  Check progress: journalctl -u talos-bootstrap -f
+  Or view log: tail -f /var/log/talos-bootstrap.log
+  ========================================
