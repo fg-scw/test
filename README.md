@@ -2,7 +2,7 @@
 graph TB
   %% --- ZONE D'INGESTION (Gestion de l'asynchronisme) ---
   subgraph INGEST["PIPELINE BIOTECH (Asynchrone)"]
-    CLIENT["Jobs Pipeline<br/>(Input Variance: 12k - 128k)"]
+    CLIENT["Jobs Pipeline<br/>Input Variance: 12k - 128k"]
     QUEUE[("Priority Queue<br/>Redis / Kafka<br/>Buffer: 30k RPM bursts")]
   end
 
@@ -29,7 +29,7 @@ graph TB
     
     %% POOL 1 : STANDARD LANE
     subgraph POOL_STD["POOL A: STANDARD LANE (< 32k tokens)"]
-      HW_STD["Node: H100-SXM-4<br/>(4x H100 - 320GB VRAM)"]
+      HW_STD["Node: H100-SXM-4<br/>4x H100 - 320GB VRAM"]
       
       subgraph VLLM_STD["vLLM Engine (Standard)"]
         CONF_STD["Config:<br/>--tensor-parallel-size 4<br/>--kv-cache-dtype fp8<br/>Batch Size: High"]
@@ -38,7 +38,7 @@ graph TB
 
     %% POOL 2 : HEAVY LANE
     subgraph POOL_HEAVY["POOL B: HEAVY LANE (> 32k tokens)"]
-      HW_HEAVY["Node: H100-SXM-8<br/>(8x H100 - 640GB VRAM)"]
+      HW_HEAVY["Node: H100-SXM-8<br/>8x H100 - 640GB VRAM"]
       
       subgraph VLLM_HEAVY["vLLM Engine (Heavy)"]
         CONF_HEAVY["Config:<br/>--tensor-parallel-size 8<br/>--enable-chunked-prefill<br/>--max-model-len 131072"]
@@ -52,8 +52,8 @@ graph TB
   QUEUE --> SPLITTER
   
   %% Routing Logic
-  SPLITTER -->|Short/Medium Prompts<br/>Optimized for $/tok| VLLM_STD
-  SPLITTER -->|Monster Prompts (128k)<br/>Optimized for Stability| VLLM_HEAVY
+  SPLITTER -->|Short/Medium Prompts<br/>Optimized for Cost/tok| VLLM_STD
+  SPLITTER -->|Monster Prompts 128k<br/>Optimized for Stability| VLLM_HEAVY
 
   %% Orchestration Links
   KUBERAY -.->|Manage Pods| VLLM_STD
