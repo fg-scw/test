@@ -1,3 +1,4 @@
+```mermaid
 graph TB
   %% --- ZONE D'INGESTION (Gestion de l'asynchronisme) ---
   subgraph INGEST["PIPELINE BIOTECH (Asynchrone)"]
@@ -78,3 +79,4 @@ graph TB
   class POOL_HEAVY heavyPool
   class ROUTING,CP logic
   class STORAGE storage
+```
