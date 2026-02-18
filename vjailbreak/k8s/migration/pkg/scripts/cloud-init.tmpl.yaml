@@ -1,0 +1,48 @@
+#cloud-config
+password: password
+chpasswd: { expire: False }
+write_files:
+  - path: /etc/pf9/host_id.conf
+    content: |
+      [hostagent]
+      host_id = HOST_ID
+    owner: root:root
+    permissions: '0644'
+  - path: /root/pf9-setup.sh
+    content: |
+      #!/bin/bash
+      set -e
+      
+      echo "Validating prerequisites..."
+      echo "Downloading and executing pcdctl setup script..."
+      curl -s https://pcdctl.s3.us-west-2.amazonaws.com/pcdctl-setup | bash
+      echo "pcdctl setup script executed successfully."
+      {{ if .Insecure }}
+      openssl s_client -showcerts -connect {{ .FQDN }}:443 2>/dev/null </dev/null | sed -ne "/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p" > /tmp/du.crt
+      cp /tmp/du.crt /usr/local/share/ca-certificates
+      update-ca-certificates
+      curl {{ .KeystoneURL }}
+      {{ end }}
+      
+      for cmd in curl pcdctl; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+          echo "Error: Required command '$cmd' is not installed. Please install it and retry." >&2
+          exit 1
+        fi
+      done
+      
+      echo "All prerequisites met. Proceeding with setup."
+      echo "Configuring pcdctl..."
+      pcdctl config set \
+        -u {{ .AuthURL }} \
+        -e {{ .Username }} \
+        -r {{ .RegionName }} \
+        -t {{.TenantName}} \
+        -p '{{.Password}}' \
+        --no-prompt
+      echo "pcdctl configuration set successfully."
+      echo "Preparing the node..."
+      pcdctl prep-node
+      echo "Node preparation complete. Setup finished successfully."
+    owner: root:root
+    permissions: '0755'

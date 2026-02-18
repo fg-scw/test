@@ -1,0 +1,48 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: OpenstackCreds
+metadata:
+  name: openstack-creds-sample
+  namespace: migration-system
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/part-of: vjailbreak
+spec:
+  # Reference to the Kubernetes secret containing OpenStack credentials
+  secretRef:
+    apiVersion: v1
+    kind: Secret
+    name: openstack-credentials
+    namespace: migration-system
+  # Sample flavors available in OpenStack (these are examples)
+  flavors:
+  - ID: "1"
+    Name: "m1.small"
+    RAM: 2048
+    Disk: 20
+    VCPUs: 1
+  - ID: "2"
+    Name: "m1.medium"
+    RAM: 4096
+    Disk: 40
+    VCPUs: 2
+---
+# Sample Secret for OpenStack credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openstack-credentials
+  namespace: migration-system
+type: Opaque
+stringData:
+  # OpenStack authentication URL
+  auth_url: "https://openstack.example.com:5000/v3"
+  # OpenStack username
+  username: "admin"
+  # OpenStack password
+  password: "dummy-openstack-password"
+  # OpenStack project name
+  project_name: "admin"
+  # OpenStack domain name
+  domain_name: "Default"
+  # OpenStack region
+  region_name: "RegionOne"

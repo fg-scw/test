@@ -1,0 +1,12 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: OpenstackCreds
+metadata:
+  name: openstackcreds
+  namespace: migration-system
+spec:
+  OS_AUTH_URL: 
+  OS_DOMAIN_NAME: 
+  OS_USERNAME: 
+  OS_PASSWORD: 
+  OS_REGION_NAME: 
+  OS_TENANT_NAME: 

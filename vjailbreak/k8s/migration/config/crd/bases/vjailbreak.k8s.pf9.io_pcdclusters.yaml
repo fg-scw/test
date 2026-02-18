@@ -1,0 +1,92 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: pcdclusters.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: PCDCluster
+    listKind: PCDClusterList
+    plural: pcdclusters
+    singular: pcdcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          PCDCluster is the Schema for the pcdclusters API that represents a Platform9 Distributed Cloud
+          cluster in the migration system. It defines cluster configuration including host membership,
+          high availability settings, and resource rebalancing policies. PCDCluster resources track both
+          the desired state of clusters as part of migration planning and the observed state of actual
+          PCD clusters in the target environment. They serve as destination targets for VM migrations
+          from VMware ESXi environments.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PCDClusterSpec defines the desired state of PCDCluster
+            properties:
+              clusterName:
+                description: ClusterName is the name of the PCD cluster
+                type: string
+              description:
+                description: Description is the description of the PCD cluster
+                type: string
+              enableAutoResourceRebalancing:
+                description: EnableAutoResourceRebalancing indicates if auto resource
+                  rebalancing is enabled
+                type: boolean
+              hosts:
+                description: Hosts is the list of hosts in the PCD cluster
+                items:
+                  type: string
+                type: array
+              rebalancingFrequencyMins:
+                description: RebalancingFrequencyMins defines how often rebalancing
+                  occurs in minutes
+                type: integer
+              vmHighAvailability:
+                description: VMHighAvailability indicates if VM high availability
+                  is enabled
+                type: boolean
+            type: object
+          status:
+            description: PCDClusterStatus defines the observed state of PCDCluster
+            properties:
+              aggregateID:
+                description: AggregateID is the aggregate ID in the PCD cluster
+                type: integer
+              clusterID:
+                description: ClusterID is the ID of the PCD cluster
+                type: string
+              createdAt:
+                description: CreatedAt indicates when the cluster was created
+                type: string
+              updatedAt:
+                description: UpdatedAt indicates when the cluster was last updated
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

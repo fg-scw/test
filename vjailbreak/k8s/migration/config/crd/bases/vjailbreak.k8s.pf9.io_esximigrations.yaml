@@ -1,0 +1,123 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: esximigrations.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: ESXIMigration
+    listKind: ESXIMigrationList
+    plural: esximigrations
+    singular: esximigration
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ESXIMigration is the Schema for the esximigrations API that defines
+          the process of migrating an ESXi host to PCD, including putting it in maintenance mode,
+          migrating all VMs, and finally removing it from vCenter inventory after completion
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ESXIMigrationSpec defines the desired state of ESXIMigration including
+              the ESXi host to migrate and the references to credentials and migration plan
+            properties:
+              esxiName:
+                description: ESXiName is the name of the ESXi host to be migrated
+                type: string
+              openstackCredsRef:
+                description: OpenstackCredsRef is the reference to the OpenStack credentials
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              rollingMigrationPlanRef:
+                description: RollingMigrationPlanRef is the reference to the RollingMigrationPlan
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              vmwareCredsRef:
+                description: VMwareCredsRef is the reference to the VMware credentials
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - esxiName
+            - openstackCredsRef
+            - rollingMigrationPlanRef
+            - vmwareCredsRef
+            type: object
+          status:
+            description: |-
+              ESXIMigrationStatus defines the observed state of ESXIMigration including
+              the list of VMs on the host, current phase, and status messages
+            properties:
+              message:
+                description: Message is the message associated with the current state
+                  of the migration
+                type: string
+              phase:
+                description: |-
+                  Phase is the current phase of the migration lifecycle
+                  The final phases include 'Succeeded' when the ESXi host has been successfully
+                  removed from vCenter inventory after migration is complete
+                type: string
+              vms:
+                description: VMs is the list of VMs present on the ESXi host
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

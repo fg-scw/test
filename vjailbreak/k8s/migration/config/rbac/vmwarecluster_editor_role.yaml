@@ -1,0 +1,27 @@
+# permissions for end users to edit vmwareclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/managed-by: kustomize
+  name: vmwarecluster-editor-role
+rules:
+- apiGroups:
+  - vjailbreak.k8s.pf9.io
+  resources:
+  - vmwareclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vjailbreak.k8s.pf9.io
+  resources:
+  - vmwareclusters/status
+  verbs:
+  - get

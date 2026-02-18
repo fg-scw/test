@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: vpwned-sdk
+  name: vpwned-sdk
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: vpwned-sdk
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: vpwned-sdk
+    spec:
+      containers:
+      - image: vpwned:latest
+        imagePullPolicy: IfNotPresent
+        name: vpwned
+        ports:
+        - containerPort: 3001
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - name: hosts-file
+          mountPath: /etc/hosts
+          readOnly: true
+        - mountPath: /home/ubuntu
+          name: vddk-storage
+        envFrom:
+        - configMapRef:
+            name: pf9-env
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccountName: migration-controller-manager
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: hosts-file
+        hostPath:
+          path: /etc/hosts
+          type: File
+      - name: vddk-storage
+        hostPath:
+          path: /home/ubuntu
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpwned-service
+  namespace: vpwned
+spec:
+  selector:
+    app: vpwned-sdk
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vpwned-ingress
+  namespace: vpwned
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /dev-api/sdk/(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: vpwned-service
+            port:
+              number: 80

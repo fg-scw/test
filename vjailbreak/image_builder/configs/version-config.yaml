@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: version-config
+  namespace: migration-system
+data:
+  version: ${TAG}
+  upgradeAvailable: "false"
+  upgradeVersion: ""
+  githubOwner: ""  # Optional: Defaults to "platform9" if not set
+  githubRepo: "" # Optional: Defaults to "vjailbreak" if not set

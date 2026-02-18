@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vjailbreak-settings
+  namespace: migration-system
+data:
+  CHANGED_BLOCKS_COPY_ITERATION_THRESHOLD: "20" # number of iterations to copy changed blocks
+  PERIODIC_SYNC_INTERVAL: "1h" # interval to sync vCenter VMs
+  VM_ACTIVE_WAIT_INTERVAL_SECONDS: "20" # interval to wait for vm to become active
+  VM_ACTIVE_WAIT_RETRY_LIMIT: "15" # number of retries to wait for vm to become active
+  DEFAULT_MIGRATION_METHOD: "cold" # supported value hot/cold, (This setting is not used as of now. To be used by UI)
+  VCENTER_SCAN_CONCURRENCY_LIMIT: "10" # max number of vms to scan at the same time
+  CLEANUP_VOLUMES_AFTER_CONVERT_FAILURE: "false" # cleanup volumes after disk convert failure
+  CLEANUP_PORTS_AFTER_MIGRATION_FAILURE: "false" # cleanup ports after migration failure
+  POPULATE_VMWARE_MACHINE_FLAVORS: "true" # automatically populate VMwareMachine objects with OpenStack flavors
+  VOLUME_AVAILABLE_WAIT_INTERVAL_SECONDS: "10" # interval to wait for volume to become available
+  VOLUME_AVAILABLE_WAIT_RETRY_LIMIT: "15" # number of retries to wait for volume to become available
+  VCENTER_LOGIN_RETRY_LIMIT: "5" # number of retries for vcenter login
+  OPENSTACK_CREDS_REQUEUE_AFTER_MINUTES: "60" # number of minutes to requeue after for openstack creds
+  VMWARE_CREDS_REQUEUE_AFTER_MINUTES: "60" # number of minutes to requeue after for vmware creds
+  VALIDATE_RDM_OWNER_VMS: "true" # validate RDM owner VMs before migration
+  DEPLOYMENT_NAME: vJailbreak
+  PERIODIC_SYNC_MAX_RETRIES: "3" # max number of retries for CBT sync
+  PERIODIC_SYNC_RETRY_CAP: "3h" # max retry interval for CBT sync
+  AUTO_FSTAB_UPDATE: "true" # automatically update fstab
+  AUTO_PXE_BOOT_ON_CONVERSION: "false" # automatically set machine to PXE boot during cluster conversion
+  V2V_HELPER_POD_CPU_REQUEST: "1000m"
+  V2V_HELPER_POD_MEMORY_REQUEST: "2Gi"
+  V2V_HELPER_POD_CPU_LIMIT: "2000m"
+  V2V_HELPER_POD_MEMORY_LIMIT: "5Gi"
+  V2V_HELPER_POD_EPHEMERAL_STORAGE_REQUEST: "3Gi"
+  V2V_HELPER_POD_EPHEMERAL_STORAGE_LIMIT: "3Gi"
+  

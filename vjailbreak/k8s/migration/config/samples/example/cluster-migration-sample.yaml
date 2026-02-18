@@ -1,0 +1,28 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: ClusterMigration
+metadata:
+  name: cluster-migration-sample
+  namespace: migration-system
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/part-of: vjailbreak
+spec:
+  # Name of the vCenter cluster to be migrated
+  clusterName: "cluster1"
+  
+  # Sequence of ESXi hosts to be migrated within this cluster
+  esxiMigrationSequence:
+  - "esxi1.example.com"
+  - "esxi2.example.com"
+  
+  # Reference to the VMware credentials
+  vmwareCredsRef:
+    name: "vmware-creds-sample"
+  
+  # Reference to the OpenStack credentials
+  openstackCredsRef:
+    name: "openstack-creds-sample"
+  
+  # Reference to the RollingMigrationPlan
+  rollingMigrationPlanRef:
+    name: "rolling-migration-plan-sample"

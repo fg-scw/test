@@ -1,0 +1,23 @@
+# permissions for end users to view vmwareclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/managed-by: kustomize
+  name: vmwarecluster-viewer-role
+rules:
+- apiGroups:
+  - vjailbreak.k8s.pf9.io
+  resources:
+  - vmwareclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vjailbreak.k8s.pf9.io
+  resources:
+  - vmwareclusters/status
+  verbs:
+  - get

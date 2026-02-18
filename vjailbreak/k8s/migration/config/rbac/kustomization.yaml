@@ -1,0 +1,58 @@
+resources:
+# All RBAC will be applied under this service account in
+# the deployment namespace. You may comment out this resource
+# if your manager will use a service account that exists at
+# runtime. Be sure to update RoleBinding and ClusterRoleBinding
+# subjects if changing service account names.
+- service_account.yaml
+- role.yaml
+- role_binding.yaml
+- leader_election_role.yaml
+- leader_election_role_binding.yaml
+- cluster_admin_binding.yaml
+# For each CRD, "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the Project itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- pcdhost_editor_role.yaml
+- pcdhost_viewer_role.yaml
+- pcdcluster_editor_role.yaml
+- pcdcluster_viewer_role.yaml
+- bmconfig_editor_role.yaml
+- bmconfig_viewer_role.yaml
+- vmwaremachine_editor_role.yaml
+- vmwaremachine_viewer_role.yaml
+- vmwarehost_editor_role.yaml
+- vmwarehost_viewer_role.yaml
+- vmwarecluster_editor_role.yaml
+- vmwarecluster_viewer_role.yaml
+- clustermigration_editor_role.yaml
+- clustermigration_viewer_role.yaml
+- esximigration_editor_role.yaml
+- esximigration_viewer_role.yaml
+- rollingmigrationplan_editor_role.yaml
+- rollingmigrationplan_viewer_role.yaml
+- vjailbreaknode_editor_role.yaml
+- vjailbreaknode_viewer_role.yaml
+- migrationtemplate_editor_role.yaml
+- migrationtemplate_viewer_role.yaml
+- migrationplan_editor_role.yaml
+- migrationplan_viewer_role.yaml
+- storagemapping_editor_role.yaml
+- storagemapping_viewer_role.yaml
+- networkmapping_editor_role.yaml
+- networkmapping_viewer_role.yaml
+- vmwarecreds_editor_role.yaml
+- vmwarecreds_viewer_role.yaml
+- openstackcreds_editor_role.yaml
+- openstackcreds_viewer_role.yaml
+- migration_editor_role.yaml
+- migration_viewer_role.yaml
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the {{ .ProjectName }} itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- rdmdisk_admin_role.yaml
+- rdmdisk_editor_role.yaml
+- rdmdisk_viewer_role.yaml
+

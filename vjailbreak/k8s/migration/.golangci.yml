@@ -1,0 +1,60 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - bodyclose
+    - copyloopvar
+    - dogsled
+    - dupl
+    - errcheck
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - staticcheck
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+  exclusions:
+    rules:
+      # Exclude some linters from running on tests files.
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+      - path: pkg/scope
+        linters:
+          - dupl
+      - path: pkg/sdk/keystone/keystone\.go
+        linters:
+          - dupl
+      - path: pkg/sdk/resmgr/resmgr\.go
+        linters:
+          - dupl
+      - path: pkg/utils/pcdutils\.go
+        linters:
+          - dupl
+      # Exclude var-naming check for entire utils package
+      - path: pkg/utils/
+        linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+    paths:
+      - test
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    dupl:
+      threshold: 100

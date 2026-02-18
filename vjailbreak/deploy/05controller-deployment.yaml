@@ -1,0 +1,98 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: migration
+    control-plane: controller-manager
+  name: migration-controller-manager
+  namespace: migration-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+      containers:
+      - args:
+        - --leader-elect=false
+        - --health-probe-bind-address=:8081
+        command:
+        - /manager
+        env:
+        - name: MAX_CONCURRENT_RECONCILES
+          value: "5"
+        envFrom:
+        - configMapRef:
+            name: pf9-env
+        image: quay.io/platform9/vjailbreak-controller:update-manifests-46a902f8
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - sleep 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/pf9/k3s
+          name: master-token
+        - mountPath: /home/ubuntu
+          name: vddk
+        - mountPath: /etc/hosts
+          name: hosts-file
+          readOnly: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      securityContext:
+        runAsGroup: 0
+        runAsUser: 0
+      serviceAccountName: migration-controller-manager
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /var/lib/rancher/k3s/server
+          type: Directory
+        name: master-token
+      - hostPath:
+          path: /home/ubuntu
+          type: Directory
+        name: vddk
+      - hostPath:
+          path: /etc/hosts
+          type: File
+        name: hosts-file
+---

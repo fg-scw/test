@@ -1,0 +1,97 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: pcdhosts.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: PCDHost
+    listKind: PCDHostList
+    plural: pcdhosts
+    singular: pcdhost
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          PCDHost is the Schema for the pcdhosts API that represents a physical or virtual host
+          in a Platform9 Distributed Cloud environment. It tracks the host's configuration,
+          network interfaces, assigned roles, and operational status. PCDHost resources are created
+          as part of the migration process when converting ESXi hosts to PCD hosts or when provisioning
+          new infrastructure to replace migrated VMware hosts.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PCDHostSpec defines the desired state of PCDHost
+            properties:
+              arch:
+                type: string
+              hostID:
+                description: HostID is the ID of the host
+                type: string
+              hostName:
+                description: HostName is the name of the host
+                type: string
+              hostState:
+                description: HostState is the state of the host
+                type: string
+              interfaces:
+                items:
+                  description: |-
+                    PCDHostInterface defines the network interface configuration for a Platform9 Distributed Cloud host,
+                    including IP addresses, MAC address, and interface name. It's used to configure proper network
+                    connectivity for PCD hosts created during the migration process.
+                  properties:
+                    ipAddresses:
+                      items:
+                        type: string
+                      type: array
+                    macAddress:
+                      type: string
+                    name:
+                      type: string
+                  type: object
+                type: array
+              osFamily:
+                type: string
+              osInfo:
+                type: string
+              rolesAssigned:
+                description: RolesAssigned is the list of roles assigned to the host
+                items:
+                  type: string
+                type: array
+            type: object
+          status:
+            description: PCDHostStatus defines the observed state of PCDHost
+            properties:
+              responding:
+                type: boolean
+              roleStatus:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

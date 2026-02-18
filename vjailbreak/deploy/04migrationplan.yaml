@@ -1,0 +1,18 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: MigrationPlan 
+metadata:
+  name: vm-migration-windows-app
+  namespace: migration-system
+spec:
+  migrationTemplate: migrationtemplate-windows
+  retry: true
+  migrationStrategy: 
+    type: hot 
+    dataCopyStart: 2024-08-2717:30:25.230Z 
+    vmCutoverStart: 2024-08-27T17:30:25.230Z
+    vmCutoverEnd: 2024-08-28T17:30:25.230Z
+  virtualmachines:
+    - - winserver2k12
+      - winserver2k26
+    - - winserver2k16
+      - winserver2k19

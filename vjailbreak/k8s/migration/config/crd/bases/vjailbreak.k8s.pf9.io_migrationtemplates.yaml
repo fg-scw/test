@@ -1,0 +1,123 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: migrationtemplates.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: MigrationTemplate
+    listKind: MigrationTemplateList
+    plural: migrationtemplates
+    singular: migrationtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MigrationTemplate is the Schema for the migrationtemplates API that defines how VMs should be migrated
+          from VMware to OpenStack including network and storage mappings. It serves as a reusable template
+          that can be referenced by multiple migration plans, providing configuration for source and destination
+          environments, OS-specific settings, and network/storage mappings. Migration templates enable consistent
+          configuration across multiple VM migrations and simplify the definition of migration plans.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MigrationTemplateSpec defines the desired state of MigrationTemplate
+              including source/destination environments and mappings
+            properties:
+              arrayCredsMapping:
+                description: |-
+                  ArrayCredsMapping is the reference to the ArrayCredsMapping resource that defines datastore to ArrayCreds mappings
+                  This is used for StorageAcceleratedCopy data copy method
+                type: string
+              destination:
+                description: Destination is the destination details for the virtual
+                  machine
+                properties:
+                  openstackRef:
+                    description: OpenstackRef is the reference to the OpenStack credentials
+                      to be used as the destination environment
+                    type: string
+                required:
+                - openstackRef
+                type: object
+              networkMapping:
+                description: NetworkMapping is the reference to the NetworkMapping
+                  resource that defines source to destination network mappings
+                type: string
+              osFamily:
+                description: OSFamily is the OS type of the virtual machine
+                enum:
+                - windowsGuest
+                - linuxGuest
+                type: string
+              source:
+                description: Source is the source details for the virtual machine
+                properties:
+                  vmwareRef:
+                    description: VMwareRef is the reference to the VMware credentials
+                      to be used as the source environment
+                    type: string
+                required:
+                - vmwareRef
+                type: object
+              storageCopyMethod:
+                default: normal
+                description: |-
+                  StorageCopyMethod indicates the method to use for storage migration
+                  Valid values: "normal" (default), "StorageAcceleratedCopy"
+                enum:
+                - normal
+                - StorageAcceleratedCopy
+                type: string
+              storageMapping:
+                description: |-
+                  StorageMapping is the reference to the StorageMapping resource that defines source to destination storage mappings
+                  This is used for normal data copy method
+                type: string
+              targetPCDClusterName:
+                description: TargetPCDClusterName is the name of the PCD cluster where
+                  the virtual machine will be migrated
+                type: string
+              useFlavorless:
+                description: UseFlavorless indicates if the migration should use flavorless
+                  VM creation for PCD.
+                type: boolean
+              useGPUFlavor:
+                description: UseGPUFlavor indicates if the migration should filter
+                  and use GPU-enabled flavors.
+                type: boolean
+              virtioWinDriver:
+                description: VirtioWinDriver is the driver to be used for the virtual
+                  machine
+                type: string
+            required:
+            - destination
+            - networkMapping
+            - source
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

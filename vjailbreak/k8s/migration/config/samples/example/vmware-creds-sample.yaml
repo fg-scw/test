@@ -1,0 +1,34 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: VMwareCreds
+metadata:
+  name: vmware-creds-sample
+  namespace: migration-system
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/part-of: vjailbreak
+spec:
+  # VMware vCenter datacenter name
+  datacenter: "dc1"
+  # Reference to the Kubernetes secret containing VMware credentials
+  secretRef:
+    apiVersion: v1
+    kind: Secret
+    name: vmware-credentials
+    namespace: migration-system
+---
+# Sample Secret for VMware credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vmware-credentials
+  namespace: migration-system
+type: Opaque
+stringData:
+  # VMware vCenter server address
+  server: "vcenter.example.com"
+  # VMware vCenter username
+  username: "administrator@vsphere.local"
+  # VMware vCenter password
+  password: "dummy-vmware-password"
+  # Insecure flag for self-signed certificates
+  insecure: "true"

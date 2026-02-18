@@ -1,0 +1,57 @@
+# This kustomization.yaml is not intended to be run by itself,
+# since it depends on service name and namespace that are out of this kustomize package.
+# It should be run by config/default
+resources:
+- bases/vjailbreak.k8s.pf9.io_migrations.yaml
+- bases/vjailbreak.k8s.pf9.io_openstackcreds.yaml
+- bases/vjailbreak.k8s.pf9.io_vmwarecreds.yaml
+- bases/vjailbreak.k8s.pf9.io_networkmappings.yaml
+- bases/vjailbreak.k8s.pf9.io_storagemappings.yaml
+- bases/vjailbreak.k8s.pf9.io_migrationplans.yaml
+- bases/vjailbreak.k8s.pf9.io_migrationtemplates.yaml
+- bases/vjailbreak.k8s.pf9.io_vjailbreaknodes.yaml
+- bases/vjailbreak.k8s.pf9.io_vmwaremachines.yaml
+- bases/vjailbreak.k8s.pf9.io_vmwareclusters.yaml
+- bases/vjailbreak.k8s.pf9.io_vmwarehosts.yaml
+- bases/vjailbreak.k8s.pf9.io_rollingmigrationplans.yaml
+- bases/vjailbreak.k8s.pf9.io_esximigrations.yaml
+- bases/vjailbreak.k8s.pf9.io_clustermigrations.yaml
+- bases/vjailbreak.k8s.pf9.io_bmconfigs.yaml
+- bases/vjailbreak.k8s.pf9.io_pcdclusters.yaml
+- bases/vjailbreak.k8s.pf9.io_pcdhosts.yaml
+- bases/vjailbreak.k8s.pf9.io_rdmdisks.yaml
+- bases/vjailbreak.k8s.pf9.io_arraycredsmappings.yaml
+- bases/vjailbreak.k8s.pf9.io_arraycreds.yaml
+# +kubebuilder:scaffold:crdkustomizeresource
+
+patches:
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+# patches here are for enabling the conversion webhook for each CRD
+# +kubebuilder:scaffold:crdkustomizewebhookpatch
+
+# [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
+# patches here are for enabling the CA injection for each CRD
+#- path: patches/cainjection_in_migrations.yaml
+#- path: patches/cainjection_in_openstackcreds.yaml
+#- path: patches/cainjection_in_vmwarecreds.yaml
+#- path: patches/cainjection_in_networkmappings.yaml
+#- path: patches/cainjection_in_storagemappings.yaml
+#- path: patches/cainjection_in_migrationplans.yaml
+#- path: patches/cainjection_in_migrationtemplates.yaml
+#- path: patches/cainjection_in_vjailbreaknodes.yaml
+#- path: patches/cainjection_in_vmwaremachines.yaml
+#- path: patches/cainjection_in_vmwareclusters.yaml
+#- path: patches/cainjection_in_vmwarehosts.yaml
+#- path: patches/cainjection_in_rollingmigrationplans.yaml
+#- path: patches/cainjection_in_esximigrations.yaml
+#- path: patches/cainjection_in_clustermigrations.yaml
+#- path: patches/cainjection_in_bmconfigs.yaml
+#- path: patches/cainjection_in_pcdclusters.yaml
+#- path: patches/cainjection_in_pcdhosts.yaml
+# +kubebuilder:scaffold:crdkustomizecainjectionpatch
+
+# [WEBHOOK] To enable webhook, uncomment the following section
+# the following config is for teaching kustomize how to do kustomization for CRDs.
+
+#configurations:
+#- kustomizeconfig.yaml

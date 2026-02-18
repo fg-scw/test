@@ -1,0 +1,40 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: RollingMigrationPlan
+metadata:
+  name: rolling-migration-plan-sample
+  namespace: migration-system
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/part-of: vjailbreak
+spec:
+  # Sequence of vCenter clusters to be migrated
+  clusterSequence:
+  - clusterName: "cluster1"
+    # Sequence of VMs to be migrated within this cluster
+    vmSequence:
+    - vmName: "vm1"
+      esxiName: "esxi1.example.com"
+    - vmName: "vm2"
+      esxiName: "esxi1.example.com"
+    - vmName: "vm3"
+      esxiName: "esxi2.example.com"
+  - clusterName: "cluster2"
+    vmSequence:
+    - vmName: "vm4"
+      esxiName: "esxi3.example.com"
+    - vmName: "vm5"
+      esxiName: "esxi3.example.com"
+    - vmName: "vm6"
+      esxiName: "esxi4.example.com"
+  
+  # Reference to the VMware credentials
+  vmwareCredsRef:
+    name: "vmware-creds-sample"
+  
+  # Reference to the OpenStack credentials
+  openstackCredsRef:
+    name: "openstack-creds-sample"
+  
+  # Reference to the BMC configuration
+  bmConfigRef:
+    name: "bmconfig-sample"

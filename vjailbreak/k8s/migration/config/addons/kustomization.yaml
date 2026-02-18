@@ -1,0 +1,8 @@
+resources:
+- k8s.svc.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: vpwned
+  newName: quay.io/platform9/vjailbreak-vpwned
+  newTag: update-manifests-46a902f8

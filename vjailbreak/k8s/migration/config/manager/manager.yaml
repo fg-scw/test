@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/managed-by: kustomize
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      # TODO(user): Uncomment the following code to configure the nodeAffinity expression
+      # according to the platforms which are supported by your solution.
+      # It is considered best practice to support multiple architectures. You can
+      # build your manager image using the makefile target docker-buildx.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+      #           - key: kubernetes.io/os
+      #             operator: In
+      #             values:
+      #               - linux
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        # TODO(user): For common cases that do not require escalating privileges
+        # it is recommended to ensure that all your Pods/Containers are restrictive.
+        # More info: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
+        # Please uncomment the following code if your project does NOT have to work on old Kubernetes
+        # versions < 1.19 or on vendors versions which do NOT support this field by default (i.e. Openshift < 4.11 ).
+        # seccompProfile:
+        #   type: RuntimeDefault
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - command:
+        - /manager
+        env:
+          - name: MAX_CONCURRENT_RECONCILES
+            value: "5"
+        envFrom:
+          - configMapRef:
+              name: pf9-env
+        args:
+          - --leader-elect=false
+          - --health-probe-bind-address=:8081
+        image: controller:latest
+        imagePullPolicy: IfNotPresent
+        name: manager
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        # This doesn't need so much. It is just to ensure QoL of the node
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 5"]
+        volumeMounts:
+        - mountPath: /etc/pf9/k3s
+          name: master-token
+        - mountPath: /home/ubuntu                                 
+          name: vddk
+        - mountPath: /etc/hosts
+          name: hosts-file
+          readOnly: true
+      serviceAccountName: controller-manager
+      volumes:
+      - name: master-token
+        hostPath:
+          path: /var/lib/rancher/k3s/server
+          type: Directory
+      - name: vddk
+        hostPath:                                                                 
+          path: /home/ubuntu                                                      
+          type: Directory
+      - name: hosts-file
+        hostPath:
+          path: /etc/hosts
+          type: File                                                      
+      terminationGracePeriodSeconds: 30

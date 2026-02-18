@@ -1,0 +1,45 @@
+ENV["TERM"] = "xterm-256color"
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+K8S_IP = ENV["K8S_IP"] || "192.168.56.10"
+
+$script = <<-SCRIPT
+curl -sfL https://get.k3s.io | \
+  K3S_KUBECONFIG_MODE="640" \
+  INSTALL_K3S_VERSION="v1.30.0+k3s1" \
+  INSTALL_K3S_EXEC="server \
+    --node-external-ip #{K8S_IP} \
+    --node-ip #{K8S_IP} \
+    --bind-address #{K8S_IP} \
+    --advertise-address #{K8S_IP} \
+    --flannel-iface eth1 \
+    --disable servicelb \
+    --disable traefik \
+    --disable local-storage \
+    --cluster-init" \
+  sh -
+SCRIPT
+
+Vagrant.configure("2") do |config|
+    # General configuration
+    config.vm.box = "https://alpha.release.flatcar-linux.net/amd64-usr/current/flatcar_production_vagrant.box"
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+    config.vbguest.auto_update = false
+    config.ssh.username = 'core'
+    config.ssh.insert_key = true
+
+    config.vm.provider :virtualbox do |v|
+        v.check_guest_additions = false
+        v.functional_vboxsf = false
+        v.memory = 8192
+        v.cpus = 2
+        v.linked_clone = true
+    end
+
+    config.vm.define "control1" do |control1|
+        control1.vm.hostname = "control1"
+        control1.vm.network "private_network", ip: "#{K8S_IP}"
+    end
+
+    config.vm.provision "shell", inline: $script
+end

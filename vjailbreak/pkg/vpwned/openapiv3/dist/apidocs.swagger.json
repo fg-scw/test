@@ -1,0 +1,2181 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "sdk/proto/v1/api.proto",
+    "description": "editor setting.\nTab size=4; Tabs as spaces; Clean up trailing whitespaces.",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "Version"
+    },
+    {
+      "name": "VCenter"
+    },
+    {
+      "name": "BMProvider"
+    },
+    {
+      "name": "VailbreakProxy"
+    },
+    {
+      "name": "StorageArray"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/vpw/v1/bm_list_machines": {
+      "get": {
+        "operationId": "BMProvider_ListMachines",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiBMListMachinesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.apiKey",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.baseUrl",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.maas",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.unknownProvider",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/cleanup": {
+      "post": {
+        "operationId": "Version_Cleanup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCleanupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCleanupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Version"
+        ]
+      }
+    },
+    "/vpw/v1/cordon_host": {
+      "post": {
+        "operationId": "VCenter_CordonHost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCordonHostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCordonHostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/deploy_machine": {
+      "post": {
+        "operationId": "BMProvider_DeployMachine",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeployMachineResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeployMachineRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/get_resource_info": {
+      "get": {
+        "operationId": "BMProvider_GetResourceInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetResourceInfoResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.apiKey",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.baseUrl",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.maas",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.unknownProvider",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resourceId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/get_vm": {
+      "get": {
+        "operationId": "VCenter_GetVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.hostnameOrIp",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.port",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.datacenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "target.vcenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.pcd",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.unknown",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/inject_env_variables": {
+      "post": {
+        "operationId": "VailbreakProxy_InjectEnvVariables",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiInjectEnvVariablesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiInjectEnvVariablesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VailbreakProxy"
+        ]
+      }
+    },
+    "/vpw/v1/list_boot_source": {
+      "get": {
+        "operationId": "BMProvider_ListBootSource",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListBootSourceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.apiKey",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.baseUrl",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.maas",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.unknownProvider",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/list_hosts": {
+      "get": {
+        "operationId": "VCenter_ListHosts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListHostsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.hostnameOrIp",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.port",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.datacenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "target.vcenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.pcd",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.unknown",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/list_vms": {
+      "get": {
+        "operationId": "VCenter_ListVMs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListVMsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accessInfo.hostnameOrIp",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.port",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.datacenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "accessInfo.useInsecure",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "target.vcenter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.pcd",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "target.unknown",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/reclaim_bm_host": {
+      "post": {
+        "operationId": "BMProvider_ReclaimBMHost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiReclaimBMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiReclaimBMRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/reclaim_vm": {
+      "post": {
+        "operationId": "VCenter_ReclaimVM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiReclaimVMResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiReclaimVMRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/revalidate_credentials": {
+      "post": {
+        "operationId": "VailbreakProxy_RevalidateCredentials",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRevalidateCredentialsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRevalidateCredentialsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VailbreakProxy"
+        ]
+      }
+    },
+    "/vpw/v1/set_resource_bm2pxeboot": {
+      "post": {
+        "operationId": "BMProvider_SetResourceBM2PXEBoot",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiSetResourceBM2PXEBootResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiSetResourceBM2PXEBootRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/set_resource_power": {
+      "post": {
+        "operationId": "BMProvider_SetResourcePower",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiSetResourcePowerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiSetResourcePowerRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    },
+    "/vpw/v1/storage/initiator_group": {
+      "post": {
+        "operationId": "StorageArray_CreateOrUpdateInitiatorGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiCreateInitiatorGroupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiCreateInitiatorGroupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/storage/map_volume": {
+      "post": {
+        "operationId": "StorageArray_MapVolumeToGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiMapVolumeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiMapVolumeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/storage/mapped_groups": {
+      "post": {
+        "operationId": "StorageArray_GetMappedGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetMappedGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiGetMappedGroupsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/storage/resolve_volume": {
+      "post": {
+        "operationId": "StorageArray_ResolveCinderVolume",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiResolveCinderVolumeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiResolveCinderVolumeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/storage/unmap_volume": {
+      "post": {
+        "operationId": "StorageArray_UnmapVolumeFromGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUnmapVolumeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUnmapVolumeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/storage/validate": {
+      "post": {
+        "operationId": "StorageArray_ValidateCredentials",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiValidateStorageCredsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiValidateStorageCredsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StorageArray"
+        ]
+      }
+    },
+    "/vpw/v1/tags": {
+      "get": {
+        "operationId": "Version_GetAvailableTags",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiAvailableUpdatesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Version"
+        ]
+      }
+    },
+    "/vpw/v1/un_cordon_host": {
+      "post": {
+        "operationId": "VCenter_UnCordonHost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUnCordonHostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUnCordonHostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VCenter"
+        ]
+      }
+    },
+    "/vpw/v1/upgrade": {
+      "post": {
+        "operationId": "Version_InitiateUpgrade",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUpgradeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUpgradeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Version"
+        ]
+      }
+    },
+    "/vpw/v1/upgrade/progress": {
+      "get": {
+        "operationId": "Version_GetUpgradeProgress",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUpgradeProgressResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Version"
+        ]
+      }
+    },
+    "/vpw/v1/validate_openstack_ip": {
+      "post": {
+        "operationId": "VailbreakProxy_ValidateOpenstackIp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiValidateOpenstackIpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiValidateOpenstackIpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "VailbreakProxy"
+        ]
+      }
+    },
+    "/vpw/v1/version": {
+      "get": {
+        "operationId": "Version_Version",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiVersionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Version"
+        ]
+      }
+    },
+    "/vpw/v1/who_am_i": {
+      "get": {
+        "operationId": "BMProvider_WhoAmI",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiWhoAmIResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "BMProvider"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "apiAvailableUpdatesResponse": {
+      "type": "object",
+      "properties": {
+        "updates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiReleaseInfo"
+          }
+        }
+      }
+    },
+    "apiBMListMachinesResponse": {
+      "type": "object",
+      "properties": {
+        "machines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiMachineInfo"
+          }
+        }
+      }
+    },
+    "apiBMProvisionerAccessInfo": {
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "useInsecure": {
+          "type": "boolean"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "maas": {
+          "type": "string"
+        },
+        "unknownProvider": {
+          "type": "string"
+        }
+      },
+      "title": "BM Provisioner APIs"
+    },
+    "apiBootDevice": {
+      "type": "string",
+      "enum": [
+        "HDD",
+        "USB",
+        "CDROM",
+        "PXE",
+        "BOOT_DEVICE_UNKNOWN"
+      ],
+      "default": "HDD"
+    },
+    "apiBootsourceSelections": {
+      "type": "object",
+      "properties": {
+        "OS": {
+          "type": "string"
+        },
+        "Release": {
+          "type": "string"
+        },
+        "ResourceURI": {
+          "type": "string"
+        },
+        "Arches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Subarches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ID": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "BootSourceID": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "apiCleanupRequest": {
+      "type": "object"
+    },
+    "apiCleanupResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiCordonHostRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiTargetAccessInfo"
+        },
+        "target": {
+          "$ref": "#/definitions/apiTargets"
+        },
+        "esxiName": {
+          "type": "string"
+        }
+      }
+    },
+    "apiCordonHostResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiCreateInitiatorGroupRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        },
+        "initiatorGroupName": {
+          "type": "string"
+        },
+        "hbaIdentifiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiCreateInitiatorGroupResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "mappingContext": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiMappingContextEntry"
+          }
+        }
+      }
+    },
+    "apiDeployMachineRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiBMProvisionerAccessInfo"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "userData": {
+          "type": "string"
+        },
+        "osReleaseName": {
+          "type": "string"
+        }
+      }
+    },
+    "apiDeployMachineResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiGetMappedGroupsRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        },
+        "volume": {
+          "$ref": "#/definitions/apiVolumeInfo"
+        },
+        "mappingContext": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiMappingContextEntry"
+          }
+        }
+      }
+    },
+    "apiGetMappedGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiGetResourceInfoResponse": {
+      "type": "object",
+      "properties": {
+        "machine": {
+          "$ref": "#/definitions/apiMachineInfo"
+        }
+      }
+    },
+    "apiGetVMResponse": {
+      "type": "object",
+      "properties": {
+        "vm": {
+          "$ref": "#/definitions/apiVMInfo"
+        }
+      }
+    },
+    "apiInjectEnvVariablesRequest": {
+      "type": "object",
+      "properties": {
+        "httpProxy": {
+          "type": "string"
+        },
+        "httpsProxy": {
+          "type": "string"
+        },
+        "noProxy": {
+          "type": "string"
+        }
+      }
+    },
+    "apiInjectEnvVariablesResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiIpmi_type": {
+      "type": "object",
+      "properties": {
+        "lan": {
+          "type": "string"
+        },
+        "lanplus": {
+          "type": "string"
+        },
+        "openIpmi": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        }
+      }
+    },
+    "apiListBootSourceResponse": {
+      "type": "object",
+      "properties": {
+        "bootSourceSelections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiBootsourceSelections"
+          }
+        }
+      }
+    },
+    "apiListHostsResponse": {
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiListHostsResponseItem"
+          }
+        }
+      }
+    },
+    "apiListHostsResponseItem": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "macAddress": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "biosUuid": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        }
+      }
+    },
+    "apiListVMsResponse": {
+      "type": "object",
+      "properties": {
+        "vms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiVMInfo"
+          }
+        }
+      }
+    },
+    "apiMachineInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "fqdn": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "powerState": {
+          "type": "string"
+        },
+        "hostname": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "memory": {
+          "type": "string"
+        },
+        "cpuCount": {
+          "type": "string"
+        },
+        "cpuSpeed": {
+          "type": "string"
+        },
+        "bootDiskSize": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusMessage": {
+          "type": "string"
+        },
+        "statusAction": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string"
+        },
+        "pool": {
+          "type": "string"
+        },
+        "tagNames": {
+          "type": "string"
+        },
+        "vmHost": {
+          "type": "string"
+        },
+        "netboot": {
+          "type": "boolean"
+        },
+        "ephemeralDeploy": {
+          "type": "boolean"
+        },
+        "powerParams": {
+          "type": "string"
+        },
+        "powerType": {
+          "type": "string"
+        },
+        "biosBootMethod": {
+          "type": "string"
+        },
+        "hardwareUuid": {
+          "type": "string"
+        },
+        "macAddress": {
+          "type": "string"
+        }
+      }
+    },
+    "apiMapVolumeRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        },
+        "initiatorGroupName": {
+          "type": "string"
+        },
+        "volume": {
+          "$ref": "#/definitions/apiVolumeInfo"
+        },
+        "mappingContext": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiMappingContextEntry"
+          }
+        }
+      }
+    },
+    "apiMapVolumeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "volume": {
+          "$ref": "#/definitions/apiVolumeInfo"
+        }
+      }
+    },
+    "apiMappingContextEntry": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiOpenstackAccessInfo": {
+      "type": "object",
+      "properties": {
+        "secretName": {
+          "type": "string"
+        },
+        "secretNamespace": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPowerStatus": {
+      "type": "string",
+      "enum": [
+        "POWERED_OFF",
+        "POWERED_ON",
+        "POWERING_OFF",
+        "POWERING_ON",
+        "POWER_STATE_UNKNOWN"
+      ],
+      "default": "POWERED_OFF"
+    },
+    "apiReclaimBMRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiBMProvisionerAccessInfo"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "userData": {
+          "type": "string"
+        },
+        "eraseDisk": {
+          "type": "boolean"
+        },
+        "bootSource": {
+          "$ref": "#/definitions/apiBootsourceSelections"
+        },
+        "powerCycle": {
+          "type": "boolean"
+        },
+        "manualPowerControl": {
+          "type": "boolean"
+        },
+        "ipmiInterface": {
+          "$ref": "#/definitions/apiIpmi_type"
+        }
+      }
+    },
+    "apiReclaimBMResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiReclaimVMRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiTargetAccessInfo"
+        },
+        "target": {
+          "$ref": "#/definitions/apiTargets"
+        },
+        "name": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiReclaimVMResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiReleaseInfo": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "releaseNotes": {
+          "type": "string"
+        }
+      }
+    },
+    "apiResolveCinderVolumeRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        },
+        "volumeName": {
+          "type": "string"
+        }
+      }
+    },
+    "apiResolveCinderVolumeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "volume": {
+          "$ref": "#/definitions/apiVolumeInfo"
+        }
+      }
+    },
+    "apiRevalidateCredentialsRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRevalidateCredentialsResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiSetResourceBM2PXEBootRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiBMProvisionerAccessInfo"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "powerCycle": {
+          "type": "boolean"
+        },
+        "lan": {
+          "type": "string"
+        },
+        "lanplus": {
+          "type": "string"
+        },
+        "openIpmi": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        }
+      }
+    },
+    "apiSetResourceBM2PXEBootResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiSetResourcePowerRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiBMProvisionerAccessInfo"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "powerStatus": {
+          "$ref": "#/definitions/apiPowerStatus"
+        }
+      }
+    },
+    "apiSetResourcePowerResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiStorageAccessInfo": {
+      "type": "object",
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "skipSslVerification": {
+          "type": "boolean"
+        },
+        "vendorType": {
+          "type": "string"
+        }
+      },
+      "title": "Storage Array APIs"
+    },
+    "apiTargetAccessInfo": {
+      "type": "object",
+      "properties": {
+        "hostnameOrIp": {
+          "type": "string"
+        },
+        "port": {
+          "type": "string"
+        },
+        "datacenter": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "useInsecure": {
+          "type": "boolean"
+        }
+      },
+      "title": "VCENTER APIs"
+    },
+    "apiTargets": {
+      "type": "object",
+      "properties": {
+        "vcenter": {
+          "type": "string"
+        },
+        "pcd": {
+          "type": "string"
+        },
+        "unknown": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUnCordonHostRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiTargetAccessInfo"
+        },
+        "target": {
+          "$ref": "#/definitions/apiTargets"
+        },
+        "esxiName": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUnCordonHostResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUnmapVolumeRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        },
+        "initiatorGroupName": {
+          "type": "string"
+        },
+        "volume": {
+          "$ref": "#/definitions/apiVolumeInfo"
+        },
+        "mappingContext": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/apiMappingContextEntry"
+          }
+        }
+      }
+    },
+    "apiUnmapVolumeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUpgradeProgressResponse": {
+      "type": "object",
+      "properties": {
+        "currentStep": {
+          "type": "string"
+        },
+        "progress": {
+          "type": "number",
+          "format": "float"
+        },
+        "status": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "startTime": {
+          "type": "string"
+        },
+        "endTime": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUpgradeRequest": {
+      "type": "object",
+      "properties": {
+        "targetVersion": {
+          "type": "string"
+        },
+        "autoCleanup": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiUpgradeResponse": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "$ref": "#/definitions/apiValidationResult"
+        },
+        "upgradeStarted": {
+          "type": "boolean"
+        },
+        "cleanupRequired": {
+          "type": "boolean"
+        },
+        "customResourceList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiVMInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "guestOs": {
+          "type": "string"
+        },
+        "powerStatus": {
+          "$ref": "#/definitions/apiPowerStatus"
+        },
+        "cpu": {
+          "type": "string",
+          "format": "int64"
+        },
+        "memory": {
+          "type": "string",
+          "format": "int64"
+        },
+        "ipv4Addr": {
+          "type": "string"
+        },
+        "ipv6Addr": {
+          "type": "string"
+        },
+        "bootDevice": {
+          "$ref": "#/definitions/apiBootDevice"
+        }
+      }
+    },
+    "apiValidateOpenstackIpRequest": {
+      "type": "object",
+      "properties": {
+        "ip": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accessInfo": {
+          "$ref": "#/definitions/apiOpenstackAccessInfo"
+        }
+      }
+    },
+    "apiValidateOpenstackIpResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          }
+        },
+        "reason": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiValidateStorageCredsRequest": {
+      "type": "object",
+      "properties": {
+        "accessInfo": {
+          "$ref": "#/definitions/apiStorageAccessInfo"
+        }
+      }
+    },
+    "apiValidateStorageCredsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "apiValidationResult": {
+      "type": "object",
+      "properties": {
+        "agentsScaledDown": {
+          "type": "boolean"
+        },
+        "vmwareCredsDeleted": {
+          "type": "boolean"
+        },
+        "openstackCredsDeleted": {
+          "type": "boolean"
+        },
+        "noMigrationPlans": {
+          "type": "boolean"
+        },
+        "noRollingMigrationPlans": {
+          "type": "boolean"
+        },
+        "noCustomResources": {
+          "type": "boolean"
+        },
+        "passedAll": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiVersionResponse": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "apiVolumeInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "format": "int64"
+        },
+        "id": {
+          "type": "string"
+        },
+        "serialNumber": {
+          "type": "string"
+        },
+        "naa": {
+          "type": "string"
+        }
+      }
+    },
+    "apiWhoAmIResponse": {
+      "type": "object",
+      "properties": {
+        "providerName": {
+          "type": "string"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

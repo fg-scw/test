@@ -1,0 +1,11 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: NetworkMapping
+metadata:
+  name: networkmapping
+  namespace: migration-system
+spec:
+  networks:
+    - source: VM Network
+      target: vlan1
+    - source: VM Network 2
+      target: vlan2

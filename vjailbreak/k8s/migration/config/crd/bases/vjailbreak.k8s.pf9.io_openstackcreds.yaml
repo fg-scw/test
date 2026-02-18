@@ -1,0 +1,276 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: openstackcreds.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: OpenstackCreds
+    listKind: OpenstackCredsList
+    plural: openstackcreds
+    singular: openstackcreds
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.openstackValidationStatus
+      name: Status
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          OpenstackCreds is the Schema for the OpenStack credentials API that defines authentication
+          and connection details for OpenStack environments. It provides a secure way to store and validate
+          OpenStack credentials for use in migration operations, including authentication information,
+          available compute flavors, volume types, networks, and Platform9 Distributed Cloud host configurations.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OpenstackCredsSpec defines the desired state of OpenstackCreds
+            properties:
+              flavors:
+                description: Flavors is the list of available flavors in openstack
+                items:
+                  description: |-
+                    Flavor represent (virtual) hardware configurations for server resources
+                    in a region.
+                  properties:
+                    OS-FLV-EXT-DATA:ephemeral:
+                      description: Ephemeral is the amount of ephemeral disk space,
+                        measured in GB.
+                      type: integer
+                    description:
+                      description: |-
+                        Description is a free form description of the flavor. Limited to
+                        65535 characters in length. Only printable characters are allowed.
+                        New in version 2.55
+                      type: string
+                    disk:
+                      description: Disk is the amount of root disk, measured in GB.
+                      type: integer
+                    extra_specs:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        Properties is a dictionary of the flavor’s extra-specs key-and-value
+                        pairs. This will only be included if the user is allowed by policy to
+                        index flavor extra_specs
+                        New in version 2.61
+                      type: object
+                    id:
+                      description: ID is the flavor's unique ID.
+                      type: string
+                    name:
+                      description: Name is the name of the flavor.
+                      type: string
+                    os-flavor-access:is_public:
+                      description: IsPublic indicates whether the flavor is public.
+                      type: boolean
+                    ram:
+                      description: RAM is the amount of memory, measured in MB.
+                      type: integer
+                    rxtx_factor:
+                      description: RxTxFactor describes bandwidth alterations of the
+                        flavor.
+                      type: number
+                    vcpus:
+                      description: VCPUs indicates how many (virtual) CPUs are available
+                        for this flavor.
+                      type: integer
+                  required:
+                  - OS-FLV-EXT-DATA:ephemeral
+                  - description
+                  - disk
+                  - extra_specs
+                  - id
+                  - name
+                  - os-flavor-access:is_public
+                  - ram
+                  - rxtx_factor
+                  - vcpus
+                  type: object
+                type: array
+              osAuthToken:
+                type: string
+              osAuthUrl:
+                type: string
+              osDomainName:
+                type: string
+              osIdentityApiVersion:
+                type: string
+              osInsecure:
+                type: boolean
+              osInterface:
+                type: string
+              osPassword:
+                type: string
+              osRegionName:
+                type: string
+              osTenantName:
+                type: string
+              osUsername:
+                type: string
+              pcdHostConfig:
+                description: PCDHostConfig is the list of available clusters in openstack
+                items:
+                  description: HostConfig defines the configuration for a Platform9
+                    Distributed Cloud host
+                  properties:
+                    clusterName:
+                      type: string
+                    hostLivenessInterface:
+                      type: string
+                    id:
+                      type: string
+                    imagelibInterface:
+                      type: string
+                    mgmtInterface:
+                      type: string
+                    name:
+                      type: string
+                    networkLabels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    tunnelingInterface:
+                      type: string
+                    vmConsoleInterface:
+                      type: string
+                  type: object
+                type: array
+              projectName:
+                description: ProjectName is the name of the project in openstack
+                type: string
+              secretRef:
+                description: SecretRef is the reference to the Kubernetes secret holding
+                  OpenStack credentials
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: |-
+                      If referring to a piece of an object instead of an entire object, this string
+                      should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within a pod, this would take on a value like:
+                      "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]" (container with
+                      index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                      referencing a part of an object.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of the referent.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                    type: string
+                  resourceVersion:
+                    description: |-
+                      Specific resourceVersion to which this reference is made, if any.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    type: string
+                  uid:
+                    description: |-
+                      UID of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            type: object
+          status:
+            description: OpenstackCredsStatus defines the observed state of OpenstackCreds
+            properties:
+              openstack:
+                description: Openstack is the OpenStack configuration for the openstackcreds
+                properties:
+                  networks:
+                    items:
+                      type: string
+                    type: array
+                  securityGroups:
+                    items:
+                      description: SecurityGroupInfo holds the security group name
+                        and ID
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        requiresIdDisplay:
+                          type: boolean
+                      required:
+                      - id
+                      - name
+                      - requiresIdDisplay
+                      type: object
+                    type: array
+                  serverGroups:
+                    items:
+                      description: ServerGroupInfo holds the server group name, ID,
+                        and policy information
+                      properties:
+                        id:
+                          type: string
+                        members:
+                          type: integer
+                        name:
+                          type: string
+                        policy:
+                          type: string
+                      required:
+                      - id
+                      - name
+                      - policy
+                      type: object
+                    type: array
+                  volumeBackends:
+                    items:
+                      type: string
+                    type: array
+                  volumeTypes:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              openstackValidationMessage:
+                description: OpenStackValidationMessage is the message associated
+                  with the OpenStack validation
+                type: string
+              openstackValidationStatus:
+                description: OpenStackValidationStatus is the status of the OpenStack
+                  validation
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

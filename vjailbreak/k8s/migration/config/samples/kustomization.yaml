@@ -1,0 +1,21 @@
+## Append samples of your project ##
+resources:
+- vjailbreak_v1alpha1_migration.yaml
+- vjailbreak_v1alpha1_openstackcreds.yaml
+- vjailbreak_v1alpha1_vmwarecreds.yaml
+- vjailbreak_v1alpha1_networkmapping.yaml
+- vjailbreak_v1alpha1_storagemapping.yaml
+- vjailbreak_v1alpha1_migrationplan.yaml
+- vjailbreak_v1alpha1_migrationtemplate.yaml
+- vjailbreak_v1alpha1_vjailbreaknode.yaml
+- vjailbreak_v1alpha1_vmwaremachine.yaml
+- vjailbreak_v1alpha1_vmwarecluster.yaml
+- vjailbreak_v1alpha1_vmwarehost.yaml
+- vjailbreak_v1alpha1_rollingmigrationplan.yaml
+- vjailbreak_v1alpha1_esximigration.yaml
+- vjailbreak_v1alpha1_clustermigration.yaml
+- vjailbreak_v1alpha1_bmconfig.yaml
+- vjailbreak_v1alpha1_pcdcluster.yaml
+- vjailbreak_v1alpha1_pcdhost.yaml
+- vjailbreak_v1alpha1_rdmdisk.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

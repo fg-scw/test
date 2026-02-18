@@ -1,0 +1,21 @@
+Dont allow to delete the master node.
+Add Role (Master/Worker) columns to the node table. 
+    - Also add Active Migration and Completed Migrations count  to the node table.
+Change icons close to vmware icons.
+vcenter center as the top level
+
+VM Migration to be ported to the Migration UI.
+Remove the sequencing from the rolling migration.
+
+
+@2nd May
+1. Add source-destination column to the migration table.
+2. PCD cluster info should be present.
+3. Status  -> Migration Status
+
+Add Notification framework to the UI.
+
+
+
+
+

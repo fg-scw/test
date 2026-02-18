@@ -1,0 +1,315 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: rollingmigrationplans.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: RollingMigrationPlan
+    listKind: RollingMigrationPlanList
+    plural: rollingmigrationplans
+    singular: rollingmigrationplan
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          RollingMigrationPlan is the Schema for the rollingmigrationplans API that defines a coordinated
+          migration of multiple VMware clusters and ESXi hosts to Platform9 Distributed Cloud (PCD).
+          It supports sequenced migration of VMs across clusters with configurable batch sizes,
+          cluster-to-cluster mapping, and tracking of migration progress across the entire datacenter migration.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RollingMigrationPlanSpec defines the desired state of RollingMigrationPlan
+            properties:
+              advancedOptions:
+                description: AdvancedOptions is a list of advanced options for the
+                  migration
+                properties:
+                  acknowledgeNetworkConflictRisk:
+                    description: AcknowledgeNetworkConflictRisk indicates that the
+                      user acknowledges the risk of network conflicts when doing live
+                      migration
+                    type: boolean
+                  granularNetworks:
+                    description: GranularNetworks is a list of networks to be migrated
+                    items:
+                      type: string
+                    type: array
+                  granularPorts:
+                    description: GranularPorts is a list of ports to be migrated
+                    items:
+                      type: string
+                    type: array
+                  granularVolumeTypes:
+                    description: GranularVolumeTypes is a list of volume types to
+                      be migrated
+                    items:
+                      type: string
+                    type: array
+                  networkPersistence:
+                    description: NetworkPersistence instructs the migration helper
+                      to persist the source networking configuration
+                    type: boolean
+                  periodicSyncEnabled:
+                    description: PeriodicSyncEnabled is a boolean to enable periodic
+                      sync
+                    type: boolean
+                  periodicSyncInterval:
+                    description: PeriodicSyncInterval is the interval at which the
+                      migration plan should be synced
+                    type: string
+                type: object
+              bmConfigRef:
+                description: BMConfigRef is the reference to the BMC credentials
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              cloudInitConfigRef:
+                description: CloudInitConfigRef is the reference to the cloud-init
+                  configuration
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              clusterMapping:
+                description: ClusterMapping is the mapping of vCenter clusters to
+                  PCD clusters
+                items:
+                  description: |-
+                    ClusterMapping defines the relationship between a VMware vCenter cluster and its corresponding
+                    Platform9 Distributed Cloud (PCD) cluster for migration operations. This mapping ensures that
+                    virtual machines are properly migrated to the appropriate target infrastructure.
+                  properties:
+                    pcdClusterName:
+                      description: PCDClusterName is the name of the PCD cluster
+                      type: string
+                    vmwareClusterName:
+                      description: VMwareClusterName is the name of the vCenter cluster
+                      type: string
+                  required:
+                  - pcdClusterName
+                  - vmwareClusterName
+                  type: object
+                type: array
+              clusterSequence:
+                description: ClusterSequence is the sequence of vCenter clusters to
+                  be migrated
+                items:
+                  description: |-
+                    ClusterMigrationInfo defines information about a VMware vCenter cluster migration,
+                    including the cluster name and the sequence of virtual machines to be migrated.
+                    This structure allows for coordinated migration of multiple related VMs within a cluster.
+                  properties:
+                    clusterName:
+                      description: ClusterName is the name of the vCenter cluster
+                        to be migrated
+                      type: string
+                    vmMigrationBatchSize:
+                      default: 10
+                      description: |-
+                        VMMigrationBatchSize is the number of VMs in one batch for migration
+                        batches will be processed sequentially, but all VMs in a batch
+                        will be migrated in parallel. Default is 10
+                      minimum: 1
+                      type: integer
+                    vmSequence:
+                      description: VMSequence is the sequence of virtual machines
+                        to be migrated
+                      items:
+                        description: |-
+                          VMSequenceInfo defines information about a virtual machine in the migration sequence,
+                          including its name and the ESXi host where it is located. This information is used to
+                          establish the proper order and grouping of VMs during the migration process.
+                        properties:
+                          esxiName:
+                            description: ESXiName is the name of the ESXi host where
+                              the virtual machine is located
+                            type: string
+                          vmName:
+                            description: VMName is the name of the virtual machine
+                              to be migrated
+                            type: string
+                        required:
+                        - vmName
+                        type: object
+                      type: array
+                  required:
+                  - clusterName
+                  - vmSequence
+                  type: object
+                type: array
+              firstBootScript:
+                default: echo "Add your startup script here!"
+                type: string
+              migrationStrategy:
+                description: MigrationStrategy is the strategy to be used for the
+                  migration
+                properties:
+                  adminInitiatedCutOver:
+                    default: false
+                    type: boolean
+                  arrayOffload:
+                    default: false
+                    type: boolean
+                  dataCopyStart:
+                    format: date-time
+                    type: string
+                  disconnectSourceNetwork:
+                    default: false
+                    type: boolean
+                  healthCheckPort:
+                    default: "443"
+                    type: string
+                  performHealthChecks:
+                    default: false
+                    type: boolean
+                  type:
+                    enum:
+                    - hot
+                    - cold
+                    - mock
+                    type: string
+                  vmCutoverEnd:
+                    format: date-time
+                    type: string
+                  vmCutoverStart:
+                    format: date-time
+                    type: string
+                required:
+                - type
+                type: object
+              migrationTemplate:
+                description: MigrationTemplate is the template to be used for the
+                  migration
+                type: string
+              postMigrationAction:
+                description: PostMigrationAction defines the post migration action
+                  for the virtual machine
+                properties:
+                  folderName:
+                    type: string
+                  moveToFolder:
+                    type: boolean
+                  renameVm:
+                    type: boolean
+                  suffix:
+                    type: string
+                type: object
+              vmMigrationPlans:
+                description: VMMigrationPlans is the reference to the VM migration
+                  plan
+                items:
+                  type: string
+                type: array
+            required:
+            - bmConfigRef
+            - clusterSequence
+            - migrationStrategy
+            - migrationTemplate
+            type: object
+          status:
+            description: RollingMigrationPlanStatus defines the observed state of
+              RollingMigrationPlan
+            properties:
+              currentCluster:
+                description: CurrentCluster is the name of the current vCenter cluster
+                  being migrated
+                type: string
+              currentESXi:
+                description: CurrentESXi is the name of the current ESXi host being
+                  migrated
+                type: string
+              currentVM:
+                description: CurrentVM is the name of the current virtual machine
+                  being migrated
+                type: string
+              failedClusters:
+                description: FailedClusters is the list of vCenter clusters that have
+                  failed to migrate
+                items:
+                  type: string
+                type: array
+              failedESXi:
+                description: FailedESXi is the list of ESXi hosts that have failed
+                  to migrate
+                items:
+                  type: string
+                type: array
+              failedVMs:
+                description: FailedVMs is the list of virtual machines that have failed
+                  to migrate
+                items:
+                  type: string
+                type: array
+              message:
+                description: Message is the message associated with the current state
+                  of the migration
+                type: string
+              migratedClusters:
+                description: MigratedClusters is the list of vCenter clusters that
+                  have been migrated
+                items:
+                  type: string
+                type: array
+              migratedESXi:
+                description: MigratedESXi is the list of ESXi hosts that have been
+                  migrated
+                items:
+                  type: string
+                type: array
+              migratedVMs:
+                description: MigratedVMs is the list of virtual machines that have
+                  been migrated
+                items:
+                  type: string
+                type: array
+              phase:
+                description: Phase is the current phase of the migration
+                type: string
+              vmMigrationPhase:
+                description: VMMigrationsPhase is the list of VM migration plans
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

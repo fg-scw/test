@@ -1,0 +1,113 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: bmconfigs.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: BMConfig
+    listKind: BMConfigList
+    plural: bmconfigs
+    singular: bmconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          BMConfig is the Schema for the bmconfigs API that defines authentication and configuration
+          details for Bare Metal Controller (BMC) providers such as MAAS. It contains credentials,
+          connection information, and boot source configurations needed to provision physical hosts
+          for use during the ESXi to PCD migration process. BMConfig enables the automatic
+          provisioning of PCD hosts as replacement infrastructure for migrated ESXi hosts.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BMConfigSpec defines the desired state of BMConfig
+            properties:
+              apiKey:
+                description: APIKey is the API key for the BM server
+                type: string
+              apiUrl:
+                description: APIUrl is the API URL for the BM server
+                type: string
+              bootSource:
+                description: BootSource is the boot source for the BMC
+                properties:
+                  release:
+                    default: jammy
+                    description: Release is the OS release version to be used (e.g.,
+                      "jammy" for Ubuntu 22.04)
+                    type: string
+                required:
+                - release
+                type: object
+              insecure:
+                default: false
+                description: Insecure is a boolean indicating whether to use insecure
+                  connection
+                type: boolean
+              password:
+                description: Password is the password for the BM server
+                type: string
+              providerType:
+                default: MAAS
+                description: ProviderType is the BMC provider type
+                type: string
+              userDataSecretRef:
+                description: UserDataSecretRef is the reference to the secret containing
+                  user data for the BMC
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              userName:
+                description: UserName is the username for the BM server
+                type: string
+            required:
+            - apiKey
+            - apiUrl
+            - providerType
+            type: object
+          status:
+            description: BMConfigStatus defines the observed state of BMConfig
+            properties:
+              validationMessage:
+                description: ValidationMessage is the message associated with the
+                  validation
+                type: string
+              validationStatus:
+                description: ValidationStatus is the status of the validation
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

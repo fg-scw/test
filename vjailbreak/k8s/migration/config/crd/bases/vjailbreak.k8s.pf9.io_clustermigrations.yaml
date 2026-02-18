@@ -1,0 +1,146 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: clustermigrations.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: ClusterMigration
+    listKind: ClusterMigrationList
+    plural: clustermigrations
+    singular: clustermigration
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.currentESXI
+      name: Current ESXI
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ClusterMigration is the Schema for the clustermigrations API that orchestrates the migration
+          of an entire VMware vCenter cluster to Platform9 Distributed Cloud (PCD).
+          It manages the ordered migration of ESXi hosts within a cluster, tracking progress
+          and maintaining references to required credentials and migration plans.
+          ClusterMigration resources coordinate with ESXIMigration resources to ensure
+          hosts are migrated in the correct sequence with proper dependency management.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterMigrationSpec defines the desired state of ClusterMigration
+            properties:
+              clusterName:
+                description: ClusterName is the name of the vCenter cluster to be
+                  migrated
+                type: string
+              esxiMigrationSequence:
+                description: ESXIMigrationSequence is the sequence of ESXi hosts to
+                  be migrated
+                items:
+                  type: string
+                type: array
+              openstackCredsRef:
+                description: OpenstackCredsRef is the reference to the OpenStack credentials
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              rollingMigrationPlanRef:
+                description: RollingMigrationPlanRef is the reference to the RollingMigrationPlan
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              vmwareCredsRef:
+                description: VMwareCredsRef is the reference to the VMware credentials
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - clusterName
+            - esxiMigrationSequence
+            - openstackCredsRef
+            - rollingMigrationPlanRef
+            - vmwareCredsRef
+            type: object
+          status:
+            description: ClusterMigrationStatus defines the observed state of ClusterMigration
+            properties:
+              currentESXi:
+                description: CurrentESXi is the name of the current ESXi host being
+                  migrated
+                type: string
+              message:
+                description: Message is the message associated with the current state
+                  of the migration
+                type: string
+              phase:
+                description: Phase is the current phase of the migration
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Paused
+                type: string
+            required:
+            - currentESXi
+            - message
+            - phase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

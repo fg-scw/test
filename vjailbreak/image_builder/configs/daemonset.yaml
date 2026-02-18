@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sync-daemon
+  namespace: kube-system
+  labels:
+    app: sync-daemon
+spec:
+  selector:
+    matchLabels:
+      app: sync-daemon
+  template:
+    metadata:
+      labels:
+        app: sync-daemon
+    spec:
+      hostNetwork: true
+      initContainers:
+        - name: fix-perms
+          image: quay.io/platform9/vjailbreak:alpine
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Fixing permissions on /home/ubuntu/vmware-vix-disklib-distrib..."
+              chown -R 1000:1000 /home/ubuntu/vmware-vix-disklib-distrib
+              chmod 755 /home/ubuntu/vmware-vix-disklib-distrib
+              echo "Fixing permissions on /home/ubuntu/virtio-win..."
+              chown -R 1000:1000 /home/ubuntu/virtio-win
+              chmod 755 /home/ubuntu/virtio-win
+          volumeMounts:
+            - name: vmwarelib
+              mountPath: /home/ubuntu/vmware-vix-disklib-distrib
+            - name: virtio-win
+              mountPath: /home/ubuntu/virtio-win
+      containers:
+        - name: sync-container
+          image: quay.io/platform9/vjailbreak:alpine
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+          ports:
+            - containerPort: 873
+          volumeMounts:
+            - name: pf9-env
+              mountPath: /etc/pf9
+              readOnly: true
+            - name: vmwarelib
+              mountPath: /home/ubuntu/vmware-vix-disklib-distrib
+            - name: logs
+              mountPath: /var/log/pf9
+            - name: virtio-win
+              mountPath: /home/ubuntu/virtio-win
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              IS_MASTER=$(grep -E '^export IS_MASTER=' /etc/pf9/k3s.env | cut -d'=' -f2)
+              MASTER_IP=$(grep -E '^export MASTER_IP=' /etc/pf9/k3s.env | cut -d'=' -f2)
+              if [ "$IS_MASTER" = "true" ]; then
+                echo "Master node detected. IP: $MASTER_IP"
+                
+                # Clean up logs older than 24 hours on master node
+                echo "Cleaning up logs older than 24 hours on master node"
+                # Note: Not restarting services to avoid disruption
+                # Instead, properly closing files in the v2v-helper code
+                # Clean master's own logs and force delete any stuck files
+                find /var/log/pf9 -type f -mtime +1 -delete 2>/dev/null || true
+                # Clean worker logs stored on master and force delete any stuck files
+                find /var/lib/rsync/worker-logs -type f -mtime +1 -delete 2>/dev/null || true
+                # Clear deleted but open files (useful when processes still hold file handles)
+                echo "Clearing deleted but open files..."
+                lsof +L1 | grep "/var/log/pf9\|/var/lib/rsync/worker-logs" | awk '{print $2}' | xargs -r kill -HUP 2>/dev/null || true
+                
+                echo "Starting rsync daemon..."
+                rsync --daemon --config=/etc/pf9/rsyncd.conf --no-detach
+                if ps aux | grep rsync | grep -v grep; then
+                  echo "rsync daemon is running."
+                else
+                  echo "Failed to start rsync daemon."
+                  exit 1
+                fi
+              else
+                echo "Worker node detected. Syncing from Master..."
+                while true; do
+                  mkdir -p /home/ubuntu/vmware-vix-disklib-distrib/
+                  
+                  # Clean up logs older than 24 hours on worker node
+                  echo "Cleaning up logs older than 24 hours on worker node"
+                  # Note: Not restarting services to avoid disruption
+                  # Instead, properly closing files in the v2v-helper code
+                  # Force delete old log files
+                  find /var/log/pf9 -type f -mtime +1 -delete 2>/dev/null || true
+                  # Clear deleted but open files
+                  echo "Clearing deleted but open files..."
+                  lsof +L1 | grep "/var/log/pf9" | awk '{print $2}' | xargs -r kill -HUP 2>/dev/null || true
+                  # Free up disk space by clearing caches
+                  sync
+                  echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+                  
+                  echo "Syncing from rsync://${MASTER_IP}"
+                  rsync -avz rsync://${MASTER_IP}/vmwarelib/ /home/ubuntu/vmware-vix-disklib-distrib/
+
+                  # Sync logs from worker to master
+                  rsync -avz  /var/log/pf9 rsync://${MASTER_IP}/worker-logs
+
+                  # Sync virtio-win drivers from master to worker
+                  rsync -avz rsync://${MASTER_IP}/virtio-win /home/ubuntu/virtio-win
+
+                  if [ $? -eq 0 ]; then
+                    echo "Sync completed successfully."
+                  else
+                    echo "Sync failed. Retrying in 60 seconds..."
+                  fi
+                  sleep 20
+                done
+              fi
+      volumes:
+        - name: pf9-env
+          hostPath:
+            path: /etc/pf9
+            type: DirectoryOrCreate
+        - name: vmwarelib
+          hostPath:
+            path: /home/ubuntu/vmware-vix-disklib-distrib
+            type: DirectoryOrCreate
+        - name: logs
+          hostPath:
+            type: DirectoryOrCreate
+            path: /var/log/pf9
+        - name: virtio-win
+          hostPath:
+            type: DirectoryOrCreate
+            path: /home/ubuntu/virtio-win

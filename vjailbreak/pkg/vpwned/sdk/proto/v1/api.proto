@@ -1,0 +1,683 @@
+syntax = "proto3";
+// editor setting.
+// Tab size=4; Tabs as spaces; Clean up trailing whitespaces.
+package api;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "v1/service";
+option java_package = "io.grpc.pf9.api";
+option java_outer_classname = "pf9";
+option java_multiple_files = true;
+
+enum PowerStatus {
+    POWERED_OFF = 0;
+    POWERED_ON = 1;
+    POWERING_OFF = 2;
+    POWERING_ON = 3;
+    POWER_STATE_UNKNOWN = 99;
+}
+
+enum BootDevice {
+    HDD = 0;
+    USB = 1;
+    CDROM = 2;
+    PXE = 3;
+    BOOT_DEVICE_UNKNOWN = 99;
+}
+
+message MachineInfo{
+    string id = 1;
+    string fqdn = 2;
+    string os = 3;
+    string power_state = 4;
+    string hostname = 5;
+    string architecture = 6;
+    string memory = 7;
+    string cpu_count = 8;
+    string cpu_speed = 9;
+    string boot_disk_size = 10;
+    string status = 11;
+    string status_message = 12;
+    string status_action = 13;
+    string description = 14;
+    string domain = 15;
+    string zone = 16;
+    string pool = 17;
+    string tag_names = 18;
+    string vm_host = 19;
+    bool netboot = 20;
+    bool ephemeral_deploy = 21;
+    string power_params = 22;
+    string power_type = 23;
+    string bios_boot_method = 24;
+    string hardware_uuid = 25;
+    string mac_address = 26;
+};
+
+service Version {
+    rpc Version(VersionRequest) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/version"
+        };
+    }
+    
+    rpc InitiateUpgrade(UpgradeRequest) returns (UpgradeResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/upgrade"
+            body: "*"
+        };
+    }
+    
+    rpc GetUpgradeProgress(VersionRequest) returns (UpgradeProgressResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/upgrade/progress"
+        };
+    }
+    rpc GetAvailableTags(VersionRequest) returns (AvailableUpdatesResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/tags"
+        };
+    }
+
+    rpc Cleanup(CleanupRequest) returns (CleanupResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/cleanup"
+            body: "*"
+        };
+    }
+}
+
+message VersionRequest {
+}
+
+message VersionResponse {
+    string version = 1;
+}
+
+message ReleaseInfo {
+  string version = 1;
+  string release_notes = 2;
+}
+
+message AvailableUpdatesResponse {
+  repeated ReleaseInfo updates = 1;
+}
+
+message ValidationResult {
+    bool agents_scaled_down = 1;
+    bool vmware_creds_deleted = 2;
+    bool openstack_creds_deleted = 3;
+    bool no_migration_plans = 4;
+    bool no_rolling_migration_plans = 5;
+    bool no_custom_resources = 6;
+    bool passed_all = 7;
+}
+
+message UpgradeRequest {
+  string target_version = 1;
+  bool auto_cleanup = 2;
+}
+
+message UpgradeResponse {
+  ValidationResult checks = 1;
+  bool upgrade_started = 2;
+  bool cleanup_required = 3;
+  repeated string custom_resource_list = 4;
+}
+
+message UpgradeProgressResponse {
+  string current_step = 1;
+  float progress = 2;
+  string status = 3;
+  string error = 4;
+  string start_time = 5;
+  string end_time = 6;
+}
+
+// VCENTER APIs
+message TargetAccessInfo {
+    string hostname_or_ip = 1;
+    string port = 2;
+    string datacenter = 3;
+    string username = 4;
+    string password = 5;
+    bool use_insecure = 6;
+}
+
+message Targets {
+    oneof target {
+        string vcenter = 1;
+        string pcd = 2;
+        string unknown = 99;
+    }
+}
+
+message VMInfo {
+    string name = 1;
+    string guest_os = 2;
+    PowerStatus power_status = 3;
+    int64 cpu = 4;
+    int64 memory = 5;
+    string ipv4_addr = 6;
+    string ipv6_addr = 7;
+    BootDevice boot_device = 8;
+}
+
+service VCenter {
+    rpc ListVMs(ListVMsRequest) returns (ListVMsResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/list_vms"
+        };
+    }
+    rpc GetVM(GetVMRequest) returns (GetVMResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/get_vm"
+        };
+    }
+    rpc ReclaimVM(ReclaimVMRequest) returns (ReclaimVMResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/reclaim_vm"
+            body: "*"
+        };
+    }
+    rpc CordonHost(CordonHostRequest) returns (CordonHostResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/cordon_host"
+            body: "*"
+        };
+    }
+    rpc UnCordonHost(UnCordonHostRequest) returns (UnCordonHostResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/un_cordon_host"
+            body: "*"
+        };
+    }
+    rpc ListHosts(ListHostsRequest) returns (ListHostsResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/list_hosts"
+        };
+    }
+}
+
+message ListHostsRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+}
+
+message ListHostsResponse {
+    repeated ListHostsResponseItem hosts = 1;
+}
+
+message ListHostsResponseItem {
+    string host = 1;
+    string ip = 2;
+    repeated string mac_address = 3;
+    string bios_uuid = 4;
+    string serial = 5;
+}
+
+message UnCordonHostRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+    string esxi_name = 3;
+}
+
+message UnCordonHostResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message ListVMsRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+}
+
+message ListVMsResponse {
+    repeated VMInfo vms = 1;
+}
+
+message GetVMRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+    string name = 3;
+}
+
+message GetVMResponse {
+    VMInfo vm = 1;
+}
+
+message ReclaimVMRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+    string name = 3;
+    repeated string args = 4;
+}
+
+message ReclaimVMResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message CordonHostRequest {
+    TargetAccessInfo access_info = 1;
+    Targets target = 2;
+    string esxi_name = 3;
+}
+
+message CordonHostResponse {
+    bool success = 1;
+    string message = 2;
+}   
+
+// BM Provisioner APIs
+message BMProvisionerAccessInfo {
+    string api_key = 1;
+    string base_url = 2;
+    bool use_insecure = 3;
+    string username = 4;
+    string password = 5;
+    oneof providers {
+        string maas = 6;
+        string unknown_provider = 99;
+    }
+}
+
+service BMProvider {
+    rpc ListMachines(BMListMachinesRequest) returns (BMListMachinesResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/bm_list_machines"
+        };
+    }
+    rpc GetResourceInfo(GetResourceInfoRequest) returns (GetResourceInfoResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/get_resource_info"
+        };
+    }
+    rpc SetResourcePower(SetResourcePowerRequest) returns (SetResourcePowerResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/set_resource_power"
+            body: "*"
+        };
+    }
+    rpc SetResourceBM2PXEBoot(SetResourceBM2PXEBootRequest) returns (SetResourceBM2PXEBootResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/set_resource_bm2pxeboot"
+            body: "*"
+        };
+    }
+    rpc WhoAmI(WhoAmIRequest) returns (WhoAmIResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/who_am_i"
+        };
+    }
+    rpc ListBootSource(ListBootSourceRequest) returns (ListBootSourceResponse) {
+        option (google.api.http) = {
+            get: "/vpw/v1/list_boot_source"
+        };
+    }
+    rpc ReclaimBMHost(ReclaimBMRequest) returns (ReclaimBMResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/reclaim_bm_host"
+            body: "*"
+        };
+    }
+    rpc DeployMachine(DeployMachineRequest) returns (DeployMachineResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/deploy_machine"
+            body: "*"
+        };
+    }
+}
+
+message BaseBMGetRequest {
+    string resource_id = 1;
+}
+
+message BMListMachinesRequest {
+    BMProvisionerAccessInfo access_info = 1;
+}
+
+message BMListMachinesResponse {
+    repeated MachineInfo machines = 1;
+}
+
+message GetResourceInfoRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+}
+
+message GetResourceInfoResponse {
+    MachineInfo machine = 1;
+}
+
+message SetResourcePowerRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+    PowerStatus power_status = 3;
+}
+
+message SetResourcePowerResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+
+message SetResourceBM2PXEBootRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+    bool power_cycle = 3;
+    oneof ipmi_interface {
+        string lan = 4;
+        string lanplus = 5;
+        string open_ipmi = 6;
+        string tool = 7;
+    };
+}
+
+message SetResourceBM2PXEBootResponse {
+    bool success = 1;
+    string message = 2;
+}   
+
+message WhoAmIRequest {
+    
+}
+
+message WhoAmIResponse {
+    string provider_name = 1;
+}
+
+message BootsourceSelections {
+    string   OS           = 1; 
+    string   Release      = 2; 
+    string   ResourceURI  = 3; 
+    repeated string Arches       = 4; 
+    repeated string Subarches    = 5; 
+    repeated string Labels       = 6; 
+    int32      ID           = 7; 
+    int32      BootSourceID = 8; 
+}
+message ListBootSourceRequest {
+    BMProvisionerAccessInfo access_info = 1;  
+}
+
+message ListBootSourceResponse {
+    repeated BootsourceSelections boot_source_selections = 1;
+}
+message ipmi_type {
+    oneof ipmi_interface {
+        string lan = 1;
+        string lanplus = 2;
+        string open_ipmi = 3;
+        string tool = 4;
+    };
+}
+message ReclaimBMRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+    string user_data = 3;
+    bool erase_disk = 4;
+    BootsourceSelections boot_source = 5;
+    bool power_cycle = 6;
+    bool manual_power_control = 7;
+    ipmi_type ipmi_interface = 8;
+}
+
+message ReclaimBMResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message DeployMachineRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+    string user_data = 3;
+    string os_release_name = 4;
+}
+
+message DeployMachineResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message StartBMRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+    ipmi_type ipmi_interface = 3;
+}
+
+message StartBMResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message StopBMRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+   ipmi_type ipmi_interface = 3;
+}
+
+message StopBMResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message IsBMReadyRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+}
+
+message IsBMReadyResponse {
+    bool is_ready = 1;
+}
+
+message IsBMRunningRequest {
+    BMProvisionerAccessInfo access_info = 1;
+    string resource_id = 2;
+}
+
+message IsBMRunningResponse {
+    bool is_running = 1;
+}
+
+message OpenstackAccessInfo {
+    string secret_name = 1;
+    string secret_namespace = 2;
+}
+
+message ValidateOpenstackIpRequest {
+    repeated string ip = 1;
+    OpenstackAccessInfo access_info = 2;
+}
+
+message ValidateOpenstackIpResponse {
+    repeated bool is_valid = 1;
+    repeated string reason = 2;
+}
+
+message RevalidateCredentialsRequest {
+  string name = 1;
+  string namespace = 2;
+  string kind = 3;
+}
+
+message RevalidateCredentialsResponse {
+  string message = 1;
+}
+
+message InjectEnvVariablesRequest {
+  string http_proxy = 1;
+  string https_proxy = 2;
+  string no_proxy = 3;
+}
+
+message InjectEnvVariablesResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+service VailbreakProxy {
+    rpc ValidateOpenstackIp (ValidateOpenstackIpRequest) returns (ValidateOpenstackIpResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/validate_openstack_ip"
+            body: "*"
+        };
+    }
+
+    rpc RevalidateCredentials(RevalidateCredentialsRequest) returns (RevalidateCredentialsResponse) {
+      option (google.api.http) = {
+        post: "/vpw/v1/revalidate_credentials"
+        body: "*"
+      };
+    }
+
+    rpc InjectEnvVariables(InjectEnvVariablesRequest) returns (InjectEnvVariablesResponse) {
+      option (google.api.http) = {
+        post: "/vpw/v1/inject_env_variables"
+        body: "*"
+      };
+    }
+}
+
+message CleanupRequest {
+}
+
+message CleanupResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Storage Array APIs
+message StorageAccessInfo {
+    string hostname = 1;
+    string username = 2;
+    string password = 3;
+    bool skip_ssl_verification = 4;
+    string vendor_type = 5;
+}
+
+message VolumeInfo {
+    string name = 1;
+    int64 size = 2;
+    string id = 3;
+    string serial_number = 4;
+    string naa = 5;
+}
+
+message MappingContextEntry {
+    string key = 1;
+    repeated string values = 2;
+}
+
+service StorageArray {
+    rpc ValidateCredentials(ValidateStorageCredsRequest) returns (ValidateStorageCredsResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/validate"
+            body: "*"
+        };
+    }
+
+    rpc CreateOrUpdateInitiatorGroup(CreateInitiatorGroupRequest) returns (CreateInitiatorGroupResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/initiator_group"
+            body: "*"
+        };
+    }
+
+    rpc MapVolumeToGroup(MapVolumeRequest) returns (MapVolumeResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/map_volume"
+            body: "*"
+        };
+    }
+
+    rpc UnmapVolumeFromGroup(UnmapVolumeRequest) returns (UnmapVolumeResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/unmap_volume"
+            body: "*"
+        };
+    }
+
+    rpc GetMappedGroups(GetMappedGroupsRequest) returns (GetMappedGroupsResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/mapped_groups"
+            body: "*"
+        };
+    }
+
+    rpc ResolveCinderVolume(ResolveCinderVolumeRequest) returns (ResolveCinderVolumeResponse) {
+        option (google.api.http) = {
+            post: "/vpw/v1/storage/resolve_volume"
+            body: "*"
+        };
+    }
+}
+
+message ValidateStorageCredsRequest {
+    StorageAccessInfo access_info = 1;
+}
+
+message ValidateStorageCredsResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message CreateInitiatorGroupRequest {
+    StorageAccessInfo access_info = 1;
+    string initiator_group_name = 2;
+    repeated string hba_identifiers = 3;
+}
+
+message CreateInitiatorGroupResponse {
+    bool success = 1;
+    string message = 2;
+    repeated MappingContextEntry mapping_context = 3;
+}
+
+message MapVolumeRequest {
+    StorageAccessInfo access_info = 1;
+    string initiator_group_name = 2;
+    VolumeInfo volume = 3;
+    repeated MappingContextEntry mapping_context = 4;
+}
+
+message MapVolumeResponse {
+    bool success = 1;
+    string message = 2;
+    VolumeInfo volume = 3;
+}
+
+message UnmapVolumeRequest {
+    StorageAccessInfo access_info = 1;
+    string initiator_group_name = 2;
+    VolumeInfo volume = 3;
+    repeated MappingContextEntry mapping_context = 4;
+}
+
+message UnmapVolumeResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetMappedGroupsRequest {
+    StorageAccessInfo access_info = 1;
+    VolumeInfo volume = 2;
+    repeated MappingContextEntry mapping_context = 3;
+}
+
+message GetMappedGroupsResponse {
+    repeated string groups = 1;
+}
+
+message ResolveCinderVolumeRequest {
+    StorageAccessInfo access_info = 1;
+    string volume_name = 2;
+}
+
+message ResolveCinderVolumeResponse {
+    bool success = 1;
+    string message = 2;
+    VolumeInfo volume = 3;
+}

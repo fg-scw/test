@@ -1,0 +1,195 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: migrationplans.vjailbreak.k8s.pf9.io
+spec:
+  group: vjailbreak.k8s.pf9.io
+  names:
+    kind: MigrationPlan
+    listKind: MigrationPlanList
+    plural: migrationplans
+    singular: migrationplan
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.migrationStatus
+      name: Status
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MigrationPlan is the Schema for the migrationplans API that defines
+          how to migrate virtual machines from VMware to OpenStack including migration strategy and scheduling.
+          It allows administrators to configure migration parameters such as timing, health checks,
+          and VM-specific settings for bulk VM migration operations between environments.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              MigrationPlanSpec defines the desired state of MigrationPlan including
+              the migration template, strategy, and the list of virtual machines to migrate
+            properties:
+              advancedOptions:
+                description: AdvancedOptions is a list of advanced options for the
+                  migration
+                properties:
+                  acknowledgeNetworkConflictRisk:
+                    description: AcknowledgeNetworkConflictRisk indicates that the
+                      user acknowledges the risk of network conflicts when doing live
+                      migration
+                    type: boolean
+                  granularNetworks:
+                    description: GranularNetworks is a list of networks to be migrated
+                    items:
+                      type: string
+                    type: array
+                  granularPorts:
+                    description: GranularPorts is a list of ports to be migrated
+                    items:
+                      type: string
+                    type: array
+                  granularVolumeTypes:
+                    description: GranularVolumeTypes is a list of volume types to
+                      be migrated
+                    items:
+                      type: string
+                    type: array
+                  networkPersistence:
+                    description: NetworkPersistence instructs the migration helper
+                      to persist the source networking configuration
+                    type: boolean
+                  periodicSyncEnabled:
+                    description: PeriodicSyncEnabled is a boolean to enable periodic
+                      sync
+                    type: boolean
+                  periodicSyncInterval:
+                    description: PeriodicSyncInterval is the interval at which the
+                      migration plan should be synced
+                    type: string
+                type: object
+              assignedIPsPerVM:
+                additionalProperties:
+                  type: string
+                description: |-
+                  AssignedIPsPerVM is a map of VM names to comma-separated assigned IPs for cold migration
+                  Format: {"vm-name": "IP1,IP2,IP3"} where each IP corresponds to a network interface by index
+                type: object
+              fallbackToDHCP:
+                type: boolean
+              firstBootScript:
+                default: echo "Add your startup script here!"
+                type: string
+              migrationStrategy:
+                description: MigrationStrategy is the strategy to be used for the
+                  migration
+                properties:
+                  adminInitiatedCutOver:
+                    default: false
+                    type: boolean
+                  arrayOffload:
+                    default: false
+                    type: boolean
+                  dataCopyStart:
+                    format: date-time
+                    type: string
+                  disconnectSourceNetwork:
+                    default: false
+                    type: boolean
+                  healthCheckPort:
+                    default: "443"
+                    type: string
+                  performHealthChecks:
+                    default: false
+                    type: boolean
+                  type:
+                    enum:
+                    - hot
+                    - cold
+                    - mock
+                    type: string
+                  vmCutoverEnd:
+                    format: date-time
+                    type: string
+                  vmCutoverStart:
+                    format: date-time
+                    type: string
+                required:
+                - type
+                type: object
+              migrationTemplate:
+                description: MigrationTemplate is the template to be used for the
+                  migration
+                type: string
+              postMigrationAction:
+                description: PostMigrationAction defines the post migration action
+                  for the virtual machine
+                properties:
+                  folderName:
+                    type: string
+                  moveToFolder:
+                    type: boolean
+                  renameVm:
+                    type: boolean
+                  suffix:
+                    type: string
+                type: object
+              securityGroups:
+                items:
+                  type: string
+                type: array
+              serverGroup:
+                type: string
+              virtualMachines:
+                description: VirtualMachines is a list of virtual machines to be migrated
+                items:
+                  items:
+                    type: string
+                  type: array
+                type: array
+            required:
+            - migrationStrategy
+            - migrationTemplate
+            - virtualMachines
+            type: object
+          status:
+            description: |-
+              MigrationPlanStatus defines the observed state of MigrationPlan including
+              the current status and progress of the migration
+            properties:
+              migrationMessage:
+                description: MigrationMessage is the message associated with the migration
+                type: string
+              migrationStatus:
+                description: |-
+                  MigrationStatus is the status of the migration using Kubernetes PodPhase states
+                  (Pending, Running, Succeeded, Failed, Unknown)
+                type: string
+            required:
+            - migrationMessage
+            - migrationStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

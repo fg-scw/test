@@ -1,0 +1,14 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: MigrationTemplate
+metadata:
+  name: migrationtemplate-windows
+  namespace: migration-system
+spec:
+  networkMapping: networkmapping 
+  storageMapping: storagemapping
+  osFamily: windowsGuest
+  source:
+    datacenter: Datacenter Name 
+    vmwareRef: vmwarecreds
+  destination:
+    openstackRef: openstackcreds

@@ -1,0 +1,10 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: VMwareCreds
+metadata:
+  name: vmwarecreds
+  namespace: migration-system
+spec:
+  VCENTER_HOST: 
+  VCENTER_INSECURE: true
+  VCENTER_PASSWORD: 
+  VCENTER_USERNAME: 

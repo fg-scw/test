@@ -1,0 +1,21 @@
+apiVersion: vjailbreak.k8s.pf9.io/v1alpha1
+kind: BMConfig
+metadata:
+  name: bmconfig-sample
+  namespace: migration-system
+  labels:
+    app.kubernetes.io/name: migration
+    app.kubernetes.io/part-of: vjailbreak
+spec:
+  # BMC provider type - MAAS is the only supported provider currently
+  providerType: "MAAS"
+  # MAAS API URL
+  apiUrl: "http://maas.example.com/MAAS/api/2.0"
+  # MAAS API key (format: <consumer>:<key>:<secret>)
+  apiKey: "dummy-maas-api-key"
+  # MAAS username (optional if API key is provided)
+  userName: "admin"
+  # MAAS password (optional if API key is provided)
+  password: "dummy-maas-password"
+  # Skip certificate validation for HTTPS connections
+  insecure: true

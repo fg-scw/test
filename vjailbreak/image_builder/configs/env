@@ -1,0 +1,4 @@
+# This file is used to set environment variables to be injected into v2v-helper 
+# User can populate this file via cloud-init
+
+

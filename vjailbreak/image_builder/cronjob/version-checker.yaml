@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: version-checker-sa
+  namespace: migration-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmap-editor-role
+  namespace: migration-system
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["version-config"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: version-checker-binding
+  namespace: migration-system
+subjects:
+  - kind: ServiceAccount
+    name: version-checker-sa
+    namespace: migration-system
+roleRef:
+  kind: Role
+  name: configmap-editor-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vjailbreak-version-checker
+  namespace: migration-system
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 300
+      template:
+        spec:
+          serviceAccountName: version-checker-sa
+          restartPolicy: Never
+          containers:
+            - name: version-checker
+              image: quay.io/platform9/vjailbreak:alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+
+                  if ! wget -q --spider --timeout=5 https://api.github.com; then
+                    echo "Internet access required to run version checker. Exiting."
+                    exit 0
+                  fi
+
+                  apk add --no-cache curl jq >/dev/null 2>&1
+
+                  curl -LO "https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl"
+                  chmod +x kubectl && mv kubectl /usr/local/bin/
+
+                  CURRENT_VERSION=$(kubectl get configmap version-config -n migration-system -o jsonpath='{.data.version}' || true)
+                  echo "Current version: $CURRENT_VERSION"
+
+                  if [ -z "$CURRENT_VERSION" ]; then
+                    echo "Error: 'version' key not found in ConfigMap. Exiting."
+                    exit 0
+                  fi
+
+                  LATEST_TAG=$(curl -s "https://api.github.com/repos/platform9/vjailbreak/tags" | jq -r '.[0].name' || true)
+
+                  if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
+                    echo "Could not fetch latest tag from GitHub. Exiting."
+                    exit 0
+                  fi
+
+                  echo "Latest tag on GitHub: $LATEST_TAG"
+
+                  CURRENT_SEMVER=${CURRENT_VERSION#v}
+                  LATEST_SEMVER=${LATEST_TAG#v}
+                  HIGHEST_VERSION=$(printf "%s\n%s" "$CURRENT_SEMVER" "$LATEST_SEMVER" | sort -V | tail -n1)
+
+                  if [ "$LATEST_SEMVER" != "$CURRENT_SEMVER" ] && [ "$HIGHEST_VERSION" == "$LATEST_SEMVER" ]; then
+                    echo "New version found! Updating ConfigMap..."
+                    PATCH_DATA="{\"data\":{\"upgradeAvailable\":\"true\",\"upgradeVersion\":\"$LATEST_TAG\"}}"
+                    kubectl patch configmap version-config -n migration-system --type='merge' -p="$PATCH_DATA"
+                    echo "ConfigMap 'version-config' updated successfully."
+                  else
+                    echo "You are on the latest version. No update needed."
+                  fi
+
+                  echo "Version Check Complete."
