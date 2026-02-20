@@ -42,7 +42,7 @@ def detect_boot_type(qcow2_path: str) -> str:
 
     Returns: 'uefi', 'bios-gpt', or 'bios-mbr'
     """
-    # Use guestfish to check partition type and mountpoints
+    # Use guestfish to check partition type
     result = subprocess.run(
         ["guestfish", "--ro", "-a", qcow2_path, "--",
          "run", ":", "part-get-parttype", "/dev/sda"],
@@ -52,14 +52,47 @@ def detect_boot_type(qcow2_path: str) -> str:
     part_type = result.stdout.strip()  # "msdos" or "gpt"
 
     if part_type == "gpt":
-        # Check for existing ESP via mountpoints
+        # Check for EFI System Partition by listing partitions and their GUIDs
+        # ESP has GUID type C12A7328-F81F-11D2-BA4B-00A0C93EC93B
         result2 = subprocess.run(
+            ["guestfish", "--ro", "-a", qcow2_path, "--",
+             "run", ":", "part-list", "/dev/sda"],
+            capture_output=True, text=True,
+            env={**os.environ, **ENV},
+        )
+        # Also check via sgdisk for EF00 type
+        result3 = subprocess.run(
+            ["guestfish", "--ro", "-a", qcow2_path, "--",
+             "run"],
+            input="", capture_output=True, text=True,
+            env={**os.environ, **ENV},
+        )
+        # Check each partition for EFI type
+        # Use part-get-gpt-type for each partition
+        for part_num in range(1, 10):
+            dev = f"/dev/sda{part_num}"
+            res = subprocess.run(
+                ["guestfish", "--ro", "-a", qcow2_path, "--",
+                 "run", ":", "part-get-gpt-type", "/dev/sda", str(part_num)],
+                capture_output=True, text=True,
+                env={**os.environ, **ENV},
+            )
+            guid = res.stdout.strip().upper()
+            if guid == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B":
+                logger.info(f"Found EFI System Partition at partition {part_num}")
+                return "uefi"
+            if res.returncode != 0:
+                break  # No more partitions
+
+        # Also check Linux-style /boot/efi mount
+        result4 = subprocess.run(
             ["guestfish", "--ro", "-a", qcow2_path, "-i", "--", "mountpoints"],
             capture_output=True, text=True,
             env={**os.environ, **ENV},
         )
-        if "/boot/efi" in result2.stdout:
+        if "/boot/efi" in result4.stdout:
             return "uefi"
+
         return "bios-gpt"
     elif part_type in ("msdos", "dos"):
         return "bios-mbr"

@@ -252,6 +252,17 @@ class MigrationPipeline:
         vm_info = inv.get_vm_info(plan.vm_name)
         state.artifacts["vm_info"] = vm_info.model_dump()
 
+        # Log VM characteristics for debugging
+        firmware = vm_info.firmware if hasattr(vm_info, 'firmware') else 'unknown'
+        guest_os = vm_info.guest_os if hasattr(vm_info, 'guest_os') else 'unknown'
+        logger.info(f"VM '{plan.vm_name}': guest_os={guest_os}, firmware={firmware}, "
+                     f"cpu={vm_info.cpu}, ram={vm_info.memory_mb}MB, "
+                     f"disks={len(vm_info.disks)}")
+        if firmware == "efi":
+            logger.info("  Source VM uses UEFI firmware (Scaleway also uses UEFI — good)")
+        else:
+            logger.info("  Source VM uses BIOS firmware (will convert to UEFI for Scaleway)")
+
         validator = MigrationValidator()
         report = validator.validate(vm_info, plan.target_type)
 
@@ -378,12 +389,11 @@ class MigrationPipeline:
                     "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso\n"
                     "  Then in migration.yaml: conversion.virtio_win_iso: /opt/virtio-win.iso"
                 )
-            mount_dir = Path("/usr/share/virtio-win")
-            mount_dir.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["umount", str(mount_dir)], check=False, capture_output=True)
-            subprocess.run(["mount", "-o", "loop,ro", str(virtio_iso), str(mount_dir)], check=False)
-            env["VIRTIO_WIN"] = str(mount_dir)
-            mounted_virtio = True
+            # Point VIRTIO_WIN directly to the ISO (virt-v2v accepts both dir and ISO)
+            env["VIRTIO_WIN"] = str(virtio_iso)
+
+            # Ensure rhsrvany.exe is installed (required by virt-v2v on Ubuntu/Debian)
+            self._ensure_rhsrvany()
 
         # Output directory
         out_dir = boot_disk.parent / "v2v-out"
@@ -419,9 +429,6 @@ class MigrationPipeline:
                 logger.warning(f"virt-v2v syntax {i} failed: {e}")
                 for f in out_dir.iterdir():
                     f.unlink(missing_ok=True)
-
-        if mounted_virtio:
-            subprocess.run(["umount", "/usr/share/virtio-win"], check=False, capture_output=True)
 
         if not v2v_ok:
             logger.warning("All virt-v2v syntaxes failed — using virt-customize fallback")
@@ -470,13 +477,90 @@ class MigrationPipeline:
         shutil.rmtree(out_dir, ignore_errors=True)
         logger.info("virt-v2v conversion complete — boot disk replaced")
 
+        # Windows post-processing: virt-v2v typically installs only viostor.
+        # We must ensure netkvm (network) and vioscsi are also present.
+        if os_family == "windows":
+            logger.info("Post-virt-v2v: ensuring all VirtIO drivers (viostor + vioscsi + netkvm)...")
+            from vmware2scw.converter.windows_virtio import ensure_all_virtio_drivers
+            virtio_iso = self.config.conversion.virtio_win_iso
+            ensure_all_virtio_drivers(
+                str(boot_disk),
+                str(virtio_iso),
+                work_dir=boot_disk.parent / "virtio-complete",
+            )
+
     def _inject_virtio_fallback(self, boot_disk, os_family):
         """Fallback VirtIO injection when virt-v2v fails."""
-        from vmware2scw.converter.disk import VirtIOInjector
-        injector = VirtIOInjector(
-            virtio_win_iso=self.config.conversion.virtio_win_iso
-        )
-        injector.inject(str(boot_disk), os_family=os_family)
+        if os_family == "windows":
+            # Use offline driver injection (registry + sys files) for Windows
+            from vmware2scw.converter.windows_virtio import inject_virtio_windows
+            virtio_iso = self.config.conversion.virtio_win_iso
+            if not virtio_iso or not Path(virtio_iso).exists():
+                raise RuntimeError(
+                    "virtio-win ISO is required for Windows VMs.\n"
+                    "  wget -O /opt/virtio-win.iso "
+                    "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso\n"
+                    "  Then in migration.yaml: conversion.virtio_win_iso: /opt/virtio-win.iso"
+                )
+            inject_virtio_windows(
+                str(boot_disk),
+                str(virtio_iso),
+                work_dir=boot_disk.parent / "virtio-work",
+            )
+        else:
+            from vmware2scw.converter.disk import VirtIOInjector
+            injector = VirtIOInjector(
+                virtio_win_iso=self.config.conversion.virtio_win_iso
+            )
+            injector.inject(str(boot_disk), os_family=os_family)
+
+    def _ensure_rhsrvany(self):
+        """Ensure rhsrvany.exe is installed for Windows virt-v2v conversions.
+
+        On Ubuntu/Debian, virt-v2v requires rhsrvany.exe + pnp_wait.exe
+        in /usr/share/virt-tools/ but these are not packaged. We extract
+        them from the Fedora mingw32-srvany RPM.
+
+        Ref: https://github.com/rwmjones/rhsrvany
+        """
+        import subprocess
+        virt_tools = Path("/usr/share/virt-tools")
+        rhsrvany = virt_tools / "rhsrvany.exe"
+
+        if rhsrvany.exists():
+            logger.info(f"rhsrvany.exe already present at {rhsrvany}")
+            return
+
+        logger.info("Installing rhsrvany.exe (required by virt-v2v for Windows)...")
+        virt_tools.mkdir(parents=True, exist_ok=True)
+
+        # Install rpm2cpio if needed
+        subprocess.run(["apt-get", "install", "-y", "-qq", "rpm2cpio"], check=False, capture_output=True)
+
+        rpm_url = "https://kojipkgs.fedoraproject.org//packages/mingw-srvany/1.1/4.fc38/noarch/mingw32-srvany-1.1-4.fc38.noarch.rpm"
+        tmp_rpm = Path("/tmp/srvany.rpm")
+
+        try:
+            subprocess.run(["wget", "-q", "-O", str(tmp_rpm), rpm_url], check=True)
+            # Extract exe files from RPM
+            result = subprocess.run(
+                f"cd /tmp && rpm2cpio {tmp_rpm} | cpio -idmv 2>&1",
+                shell=True, capture_output=True, text=True,
+            )
+            # Find and copy the exe files
+            import glob
+            for exe in glob.glob("/tmp/usr/**/bin/*.exe", recursive=True):
+                dest = virt_tools / Path(exe).name
+                subprocess.run(["cp", exe, str(dest)], check=True)
+                logger.info(f"  Installed {dest}")
+        except Exception as e:
+            logger.warning(f"Failed to install rhsrvany.exe: {e}")
+            logger.warning("Windows virt-v2v conversion may fail. Install manually:")
+            logger.warning(f"  wget -O /tmp/srvany.rpm {rpm_url}")
+            logger.warning("  cd /tmp && rpm2cpio srvany.rpm | cpio -idmv")
+            logger.warning("  cp /tmp/usr/*/bin/*.exe /usr/share/virt-tools/")
+        finally:
+            tmp_rpm.unlink(missing_ok=True)
 
     def _stage_convert(self, plan: VMMigrationPlan, state: MigrationState) -> None:
         """Convert VMDK disks to qcow2 format."""
@@ -536,7 +620,33 @@ class MigrationPipeline:
         boot_disk = qcow2_paths[0]
 
         if os_family == "windows":
-            logger.info("Windows VM — bootloader fix not applicable (BCD is handled by VirtIO injection)")
+            logger.info("Configuring Windows for Scaleway (EMS console + RDP)...")
+
+            # Use virt-customize --firstboot-command to configure Windows at first boot
+            # This runs via rhsrvany.exe which was installed in inject_virtio stage
+            ems_script = (
+                r'bcdedit /ems "{current}" on & '
+                r'bcdedit /emssettings EMSPORT:1 EMSBAUDRATE:115200 & '
+                r'bcdedit /set "{bootmgr}" bootems yes & '
+                r'reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" '
+                r'/v fDenyTSConnections /t REG_DWORD /d 0 /f & '
+                r'netsh advfirewall firewall set rule group="Remote Desktop" new enable=yes & '
+                r'powershell -Command "Set-ItemProperty -Path '
+                r"'HKLM:\System\CurrentControlSet\Control\Terminal Server' "
+                r"-Name 'fDenyTSConnections' -Value 0\" & "
+                r'shutdown /r /t 30 /c "Scaleway migration: enabling EMS console - rebooting"'
+            )
+
+            try:
+                run_command([
+                    "virt-customize", "-a", str(boot_disk),
+                    "--firstboot-command", f'cmd /c "{ems_script}"',
+                ], env={"LIBGUESTFS_BACKEND": "direct"}, check=False)
+                logger.info("Windows firstboot script injected (EMS + RDP activation + auto-reboot)")
+            except Exception as e:
+                logger.warning(f"Windows firstboot injection failed (non-critical): {e}")
+                logger.warning("EMS/console may not work. Connect via RDP after boot.")
+
             return
 
         logger.info("Fixing bootloader for KVM compatibility...")
@@ -668,14 +778,51 @@ class MigrationPipeline:
             logger.warning("BIOS → UEFI conversion was not performed")
 
     def _stage_fix_network(self, plan: VMMigrationPlan, state: MigrationState) -> None:
-        """Network adaptation — handled in fix_bootloader stage.
+        """Network adaptation for Scaleway.
 
-        The fix_bootloader stage already:
-        - Removes persistent net rules
-        - Configures DHCP on default interfaces
-        - Removes VMware network driver references
+        Linux: handled in fix_bootloader stage.
+        Windows: DHCP already forced in inject_virtio (ensure_all_virtio_drivers).
+                 Add firstboot script as belt-and-suspenders.
         """
-        logger.info("Network adaptation already handled in fix_bootloader stage")
+        from vmware2scw.scaleway.mapping import ResourceMapper
+        from vmware2scw.utils.subprocess import run_command
+
+        mapper = ResourceMapper()
+        vm_info_dict = state.artifacts.get("vm_info", {})
+        guest_os = vm_info_dict.get("guest_os", "")
+        os_family, _ = mapper.get_os_family(guest_os)
+
+        if os_family != "windows":
+            logger.info("Linux network adaptation already handled in fix_bootloader stage")
+            return
+
+        qcow2_paths = state.artifacts.get("qcow2_paths", [])
+        if not qcow2_paths:
+            return
+
+        boot_disk = qcow2_paths[0]
+        logger.info("Windows network: DHCP already configured via registry in inject_virtio")
+        logger.info("Injecting firstboot DHCP script as additional safety net...")
+
+        # Firstboot script to force DHCP at runtime (in case registry changes alone are insufficient)
+        try:
+            dhcp_script = (
+                r'powershell -Command "Get-NetAdapter | ForEach-Object { '
+                r"Set-NetIPInterface -InterfaceIndex $_.ifIndex -Dhcp Enabled -ErrorAction SilentlyContinue; "
+                r"Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ResetServerAddresses -ErrorAction SilentlyContinue "
+                r'}" & '
+                r'netsh interface ip set address name="Ethernet" dhcp 2>nul & '
+                r'netsh interface ip set address name="Ethernet 2" dhcp 2>nul & '
+                r'netsh interface ip set address name="Ethernet Instance 0" dhcp 2>nul & '
+                r'ipconfig /renew 2>nul'
+            )
+            run_command([
+                "virt-customize", "-a", str(boot_disk),
+                "--firstboot-command", f'cmd /c "{dhcp_script}"',
+            ], env={"LIBGUESTFS_BACKEND": "direct"}, check=False)
+            logger.info("Windows DHCP firstboot script injected")
+        except Exception as e:
+            logger.warning(f"DHCP firstboot script injection failed: {e}")
 
     def _stage_upload_s3(self, plan: VMMigrationPlan, state: MigrationState) -> None:
         """Upload qcow2 images to Scaleway Object Storage."""
