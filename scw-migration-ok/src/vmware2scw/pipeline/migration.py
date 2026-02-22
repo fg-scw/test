@@ -371,7 +371,110 @@ class MigrationPipeline:
 
         boot_disk = Path(qcow2_paths[0])
 
-        if not check_tool_available("virt-v2v"):
+        # ──── Windows: Phase 1 → virt-v2v → Phase 2 ────
+        # CRITICAL ordering:
+        # - Phase 1 runs on the ORIGINAL qcow2 (non-compressed, writable)
+        #   to stage drivers, setup script, and registry entries.
+        # - virt-v2v runs next for PCI device binding (required for boot).
+        #   virt-v2v preserves our staged files but its output is NOT writable
+        #   (NTFS dirty flag from virt-v2v's internal modifications).
+        # - Phase 2 boots the virt-v2v output in QEMU (virtio-blk).
+        #   Windows runs pnputil to install all drivers into DriverStore.
+        #   QEMU writes directly to the qcow2 — NTFS dirty is fine.
+        if os_family == "windows":
+            virtio_iso = self.config.conversion.virtio_win_iso
+            if not virtio_iso or not Path(virtio_iso).exists():
+                raise RuntimeError(
+                    "virtio-win ISO is required for Windows VMs.\n"
+                    "  wget -O /opt/virtio-win.iso "
+                    "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso\n"
+                    "  Then in migration.yaml: conversion.virtio_win_iso: /opt/virtio-win.iso"
+                )
+
+            self._ensure_rhsrvany()
+
+            # Step 1: Phase 1 — offline prep on ORIGINAL writable qcow2
+            logger.info("Windows Step 1/3: Offline driver staging (Phase 1)...")
+            from vmware2scw.converter.windows_virtio import _phase1_offline, _phase2_qemu_boot, ensure_prerequisites
+            import tempfile
+            ensure_prerequisites()
+            p1_work = boot_disk.parent / "virtio-phase1"
+            p1_work.mkdir(parents=True, exist_ok=True)
+            _phase1_offline(str(boot_disk), str(virtio_iso), p1_work)
+
+            # Step 2: virt-v2v — PCI device binding
+            logger.info("Windows Step 2/3: virt-v2v (PCI device binding)...")
+            env = {"LIBGUESTFS_BACKEND": "direct", "VIRTIO_WIN": str(virtio_iso)}
+            out_dir = boot_disk.parent / "v2v-out"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            v2v_name = f"v2v-{boot_disk.stem}"
+
+            v2v_ok = False
+            for i, cmd in enumerate([
+                ["virt-v2v", "-i", "disk", str(boot_disk),
+                 "-o", "qemu", "-os", str(out_dir),
+                 "-on", v2v_name, "-of", "qcow2", "-oc", "qcow2"],
+                ["virt-v2v", "-i", "disk", str(boot_disk),
+                 "-o", "local", "-os", str(out_dir),
+                 "-on", v2v_name, "-of", "qcow2"],
+            ], 1):
+                logger.info(f"  Trying virt-v2v syntax {i}/2...")
+                try:
+                    run_command(cmd, env=env, timeout=3600)
+                    v2v_ok = True
+                    logger.info(f"  virt-v2v syntax {i} succeeded")
+                    break
+                except Exception as e:
+                    logger.warning(f"  virt-v2v syntax {i} failed: {e}")
+                    for f in out_dir.iterdir():
+                        f.unlink(missing_ok=True)
+
+            if not v2v_ok:
+                raise RuntimeError("virt-v2v failed — cannot prepare Windows for KVM")
+
+            # Find virt-v2v output and replace boot disk
+            candidates = sorted(
+                [f for f in out_dir.iterdir()
+                 if f.is_file() and f.stat().st_size > 1024 * 1024
+                 and f.suffix not in ('.xml', '.sh')],
+                key=lambda f: f.stat().st_size, reverse=True,
+            )
+            if not candidates:
+                raise RuntimeError(f"virt-v2v produced no output in {out_dir}")
+
+            converted = candidates[0]
+            logger.info(f"  virt-v2v output: {converted.name} ({converted.stat().st_size / (1024**3):.1f} GB)")
+
+            boot_disk.unlink(missing_ok=True)
+            import shutil as _shutil
+            _shutil.move(str(converted), str(boot_disk))
+            _shutil.rmtree(out_dir, ignore_errors=True)
+            state.artifacts["qcow2_paths"][0] = str(boot_disk)
+            logger.info("  virt-v2v complete — boot disk replaced")
+
+            # Step 3: Phase 2 — QEMU boot for pnputil
+            logger.info("Windows Step 3/4: QEMU virtio-blk boot (pnputil driver installation)...")
+            p2_work = boot_disk.parent / "virtio-phase2"
+            p2_work.mkdir(parents=True, exist_ok=True)
+            phase2_ok = _phase2_qemu_boot(str(boot_disk), p2_work)
+
+            if not phase2_ok:
+                logger.warning("Phase 2 QEMU boot may have timed out — checking if drivers installed anyway")
+
+            # Step 4: Phase 3 — QEMU dual boot (virtio-blk + virtio-scsi PnP binding)
+            # Scaleway uses virtio-scsi. Phase 2 installed vioscsi in DriverStore,
+            # but Windows needs to see the virtio-scsi PCI device to bind the driver.
+            # We boot with BOTH controllers: virtio-blk (to boot) + virtio-scsi (for PnP).
+            # Windows auto-detects virtio-scsi and binds vioscsi from DriverStore.
+            logger.info("Windows Step 4/4: QEMU dual boot (virtio-scsi PnP binding)...")
+            from vmware2scw.converter.windows_virtio import _phase3_dual_boot
+            p3_work = boot_disk.parent / "virtio-phase3"
+            p3_work.mkdir(parents=True, exist_ok=True)
+            _phase3_dual_boot(str(boot_disk), p3_work)
+
+            return
+
+        # ──── Linux: use virt-v2v ────
             logger.warning("virt-v2v not installed — using virt-customize fallback")
             self._inject_virtio_fallback(boot_disk, os_family)
             return
@@ -477,17 +580,88 @@ class MigrationPipeline:
         shutil.rmtree(out_dir, ignore_errors=True)
         logger.info("virt-v2v conversion complete — boot disk replaced")
 
-        # Windows post-processing: virt-v2v typically installs only viostor.
-        # We must ensure netkvm (network) and vioscsi are also present.
-        if os_family == "windows":
-            logger.info("Post-virt-v2v: ensuring all VirtIO drivers (viostor + vioscsi + netkvm)...")
-            from vmware2scw.converter.windows_virtio import ensure_all_virtio_drivers
-            virtio_iso = self.config.conversion.virtio_win_iso
-            ensure_all_virtio_drivers(
-                str(boot_disk),
-                str(virtio_iso),
-                work_dir=boot_disk.parent / "virtio-complete",
+        # Linux post-processing only (Windows is handled above)
+
+    def _fix_ntfs_dirty_flag(self, qcow2_path):
+        """Fix NTFS dirty flag that prevents write access.
+
+        Windows Hibernation and Fast Startup leave the NTFS filesystem in a
+        'dirty' state. virt-v2v and guestfish will refuse to mount read-write.
+
+        Uses qemu-nbd + host ntfsfix for maximum reliability.
+        """
+        import os
+        import subprocess
+        import time
+
+        logger.info("Checking/fixing NTFS dirty flag (Fast Startup / Hibernation)...")
+        gf_env = {**os.environ, "LIBGUESTFS_BACKEND": "direct"}
+
+        # Method 1: qemu-nbd + ntfsfix (most reliable)
+        nbd_dev = "/dev/nbd0"
+        subprocess.run(["modprobe", "nbd", "max_part=8"], capture_output=True)
+        subprocess.run(["qemu-nbd", "--disconnect", nbd_dev], capture_output=True)
+
+        r = subprocess.run(
+            ["qemu-nbd", "--connect", nbd_dev, str(qcow2_path)],
+            capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            try:
+                time.sleep(1)
+                for i in range(1, 8):
+                    part = f"{nbd_dev}p{i}"
+                    if not os.path.exists(part):
+                        continue
+                    blkid_r = subprocess.run(
+                        ["blkid", "-o", "value", "-s", "TYPE", part],
+                        capture_output=True, text=True,
+                    )
+                    if "ntfs" in blkid_r.stdout.lower():
+                        logger.info(f"  Running ntfsfix -d on {part}...")
+                        fix_r = subprocess.run(
+                            ["ntfsfix", "-d", part],
+                            capture_output=True, text=True,
+                        )
+                        if fix_r.returncode == 0:
+                            logger.info(f"  ntfsfix succeeded on {part}")
+                        else:
+                            logger.warning(f"  ntfsfix on {part}: {fix_r.stderr.strip()[:200]}")
+            finally:
+                subprocess.run(["qemu-nbd", "--disconnect", nbd_dev], capture_output=True)
+        else:
+            logger.warning(f"  qemu-nbd not available: {r.stderr.strip()[:200]}")
+
+        # Method 2: Disable Fast Startup via hivex
+        try:
+            r2 = subprocess.run(
+                ["guestfish", "-a", str(qcow2_path), "-i", "--",
+                 "download", "/Windows/System32/config/SYSTEM", "/tmp/SYSTEM.ntfsfix"],
+                capture_output=True, text=True, env=gf_env,
             )
+            if r2.returncode == 0:
+                from pathlib import Path as P
+                reg_content = (
+                    'Windows Registry Editor Version 5.00\n\n'
+                    '[HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\ControlSet001\\\\Control\\\\Session Manager\\\\Power]\n'
+                    '"HiberbootEnabled"=dword:00000000\n'
+                )
+                P("/tmp/disable-fastboot.reg").write_text(reg_content)
+                subprocess.run(
+                    ["hivexregedit", "--merge", "/tmp/SYSTEM.ntfsfix",
+                     "--prefix", "HKEY_LOCAL_MACHINE\\SYSTEM",
+                     "/tmp/disable-fastboot.reg"],
+                    capture_output=True, text=True,
+                )
+                subprocess.run(
+                    ["guestfish", "-a", str(qcow2_path), "-i", "--",
+                     "upload", "/tmp/SYSTEM.ntfsfix",
+                     "/Windows/System32/config/SYSTEM"],
+                    capture_output=True, text=True, env=gf_env,
+                )
+                logger.info("  Disabled Windows Fast Startup (HiberbootEnabled=0)")
+        except Exception as e:
+            logger.debug(f"  Fast Startup disable attempt: {e}")
 
     def _inject_virtio_fallback(self, boot_disk, os_family):
         """Fallback VirtIO injection when virt-v2v fails."""
@@ -565,9 +739,23 @@ class MigrationPipeline:
     def _stage_convert(self, plan: VMMigrationPlan, state: MigrationState) -> None:
         """Convert VMDK disks to qcow2 format."""
         from vmware2scw.converter.disk import DiskConverter
+        from vmware2scw.scaleway.mapping import ResourceMapper
 
         converter = DiskConverter()
         qcow2_paths = []
+
+        # Determine OS family for compression decision
+        mapper = ResourceMapper()
+        vm_info_dict = state.artifacts.get("vm_info", {})
+        guest_os = vm_info_dict.get("guest_os", "otherLinux64Guest")
+        os_family, _ = mapper.get_os_family(guest_os)
+
+        # Windows: do NOT compress — qemu-nbd has I/O errors on compressed qcow2
+        # The image will be compressed later before upload if needed.
+        compress = self.config.conversion.compress_qcow2
+        if os_family == "windows":
+            compress = False
+            logger.info("Windows VM: disabling qcow2 compression (required for ntfsfix/qemu-nbd)")
 
         for vmdk_path in state.artifacts.get("vmdk_paths", []):
             vmdk = Path(vmdk_path)
@@ -582,7 +770,7 @@ class MigrationPipeline:
             converter.convert(
                 vmdk,
                 qcow2_path,
-                compress=self.config.conversion.compress_qcow2,
+                compress=compress,
             )
             qcow2_paths.append(str(qcow2_path))
 
@@ -620,33 +808,10 @@ class MigrationPipeline:
         boot_disk = qcow2_paths[0]
 
         if os_family == "windows":
-            logger.info("Configuring Windows for Scaleway (EMS console + RDP)...")
-
-            # Use virt-customize --firstboot-command to configure Windows at first boot
-            # This runs via rhsrvany.exe which was installed in inject_virtio stage
-            ems_script = (
-                r'bcdedit /ems "{current}" on & '
-                r'bcdedit /emssettings EMSPORT:1 EMSBAUDRATE:115200 & '
-                r'bcdedit /set "{bootmgr}" bootems yes & '
-                r'reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" '
-                r'/v fDenyTSConnections /t REG_DWORD /d 0 /f & '
-                r'netsh advfirewall firewall set rule group="Remote Desktop" new enable=yes & '
-                r'powershell -Command "Set-ItemProperty -Path '
-                r"'HKLM:\System\CurrentControlSet\Control\Terminal Server' "
-                r"-Name 'fDenyTSConnections' -Value 0\" & "
-                r'shutdown /r /t 30 /c "Scaleway migration: enabling EMS console - rebooting"'
-            )
-
-            try:
-                run_command([
-                    "virt-customize", "-a", str(boot_disk),
-                    "--firstboot-command", f'cmd /c "{ems_script}"',
-                ], env={"LIBGUESTFS_BACKEND": "direct"}, check=False)
-                logger.info("Windows firstboot script injected (EMS + RDP activation + auto-reboot)")
-            except Exception as e:
-                logger.warning(f"Windows firstboot injection failed (non-critical): {e}")
-                logger.warning("EMS/console may not work. Connect via RDP after boot.")
-
+            # EMS, RDP, and DHCP are ALL configured by ensure_all_virtio_drivers
+            # (via the SetupPhase script vmware2scw-setup.cmd in inject_virtio).
+            # The NTFS is dirty after QEMU Phase 2 — do NOT try to write.
+            logger.info("Windows: EMS/RDP/DHCP already configured by inject_virtio — skipping")
             return
 
         logger.info("Fixing bootloader for KVM compatibility...")
@@ -796,33 +961,9 @@ class MigrationPipeline:
             logger.info("Linux network adaptation already handled in fix_bootloader stage")
             return
 
-        qcow2_paths = state.artifacts.get("qcow2_paths", [])
-        if not qcow2_paths:
-            return
-
-        boot_disk = qcow2_paths[0]
-        logger.info("Windows network: DHCP already configured via registry in inject_virtio")
-        logger.info("Injecting firstboot DHCP script as additional safety net...")
-
-        # Firstboot script to force DHCP at runtime (in case registry changes alone are insufficient)
-        try:
-            dhcp_script = (
-                r'powershell -Command "Get-NetAdapter | ForEach-Object { '
-                r"Set-NetIPInterface -InterfaceIndex $_.ifIndex -Dhcp Enabled -ErrorAction SilentlyContinue; "
-                r"Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ResetServerAddresses -ErrorAction SilentlyContinue "
-                r'}" & '
-                r'netsh interface ip set address name="Ethernet" dhcp 2>nul & '
-                r'netsh interface ip set address name="Ethernet 2" dhcp 2>nul & '
-                r'netsh interface ip set address name="Ethernet Instance 0" dhcp 2>nul & '
-                r'ipconfig /renew 2>nul'
-            )
-            run_command([
-                "virt-customize", "-a", str(boot_disk),
-                "--firstboot-command", f'cmd /c "{dhcp_script}"',
-            ], env={"LIBGUESTFS_BACKEND": "direct"}, check=False)
-            logger.info("Windows DHCP firstboot script injected")
-        except Exception as e:
-            logger.warning(f"DHCP firstboot script injection failed: {e}")
+        # Windows: DHCP already configured by ensure_all_virtio_drivers in inject_virtio.
+        # The NTFS is dirty after QEMU Phase 2 — do NOT try to write via virt-customize.
+        logger.info("Windows network: DHCP already configured by inject_virtio — skipping")
 
     def _stage_upload_s3(self, plan: VMMigrationPlan, state: MigrationState) -> None:
         """Upload qcow2 images to Scaleway Object Storage."""
